@@ -1,9 +1,8 @@
 package gyeonggi.gyeonggifesta.auth.exception;
 
 import gyeonggi.gyeonggifesta.util.response.error_code.ErrorCode;
-import org.springframework.http.HttpStatus;
-
 import lombok.Getter;
+import org.springframework.http.HttpStatus;
 
 @Getter
 public enum AuthErrorCode implements ErrorCode {

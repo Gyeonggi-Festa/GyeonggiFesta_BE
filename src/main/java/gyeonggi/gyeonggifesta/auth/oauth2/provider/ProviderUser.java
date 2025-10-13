@@ -1,9 +1,9 @@
 package gyeonggi.gyeonggifesta.auth.oauth2.provider;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.security.core.GrantedAuthority;
 
 public interface ProviderUser {
     String getProvider();
