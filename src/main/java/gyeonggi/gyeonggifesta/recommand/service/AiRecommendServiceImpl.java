@@ -1,3 +1,4 @@
+// path: src/main/java/gyeonggi/gyeonggifesta/recommand/service/AiRecommendServiceImpl.java
 package gyeonggi.gyeonggifesta.recommand.service;
 
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;

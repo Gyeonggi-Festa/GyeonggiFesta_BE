@@ -10,12 +10,10 @@ public class EventStepListener implements ItemProcessListener<GyeonggiEventRow, 
 
 	@Override
 	public void beforeProcess(GyeonggiEventRow item) {
-		// 필요하면 로그 추가 가능
 	}
 
 	@Override
 	public void afterProcess(GyeonggiEventRow item, Event result) {
-		// 필요하면 처리 완료 로그 추가 가능
 	}
 
 	@Override

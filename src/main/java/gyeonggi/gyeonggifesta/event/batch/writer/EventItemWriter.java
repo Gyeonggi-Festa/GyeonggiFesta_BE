@@ -1,3 +1,4 @@
+// path: src/main/java/gyeonggi/gyeonggifesta/event/batch/writer/EventItemWriter.java
 package gyeonggi.gyeonggifesta.event.batch.writer;
 
 import gyeonggi.gyeonggifesta.event.entity.Event;

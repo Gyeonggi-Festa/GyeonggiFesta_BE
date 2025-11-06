@@ -44,7 +44,6 @@ public class EventReview extends BaseEntity {
 		this.member = member;
 		this.content = content;
 		this.rating = rating;
-		this.event.addRating(rating);
 	}
 
 	/**

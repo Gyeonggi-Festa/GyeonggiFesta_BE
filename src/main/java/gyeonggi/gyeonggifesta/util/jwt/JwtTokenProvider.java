@@ -1,5 +1,10 @@
 package gyeonggi.gyeonggifesta.util.jwt;
 
+import gyeonggi.gyeonggifesta.auth.custom.CustomUserDetails;
+import gyeonggi.gyeonggifesta.auth.exception.AuthErrorCode;
+import gyeonggi.gyeonggifesta.exception.BusinessException;
+import gyeonggi.gyeonggifesta.member.entity.Member;
+import gyeonggi.gyeonggifesta.member.repository.MemberRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -10,11 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import gyeonggi.gyeonggifesta.auth.custom.CustomUserDetails;
-import gyeonggi.gyeonggifesta.auth.exception.AuthErrorCode;
-import gyeonggi.gyeonggifesta.exception.BusinessException;
-import gyeonggi.gyeonggifesta.member.entity.Member;
-import gyeonggi.gyeonggifesta.member.repository.MemberRepository;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;

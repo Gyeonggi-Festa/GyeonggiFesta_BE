@@ -1,0 +1,23 @@
+package gyeonggi.gyeonggifesta.board.dto.post.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class PostRes {
+	private Long postId;
+	private String title;
+	private String content;
+	private String writer;
+	private long viewCount;
+	private long likes;
+	private long comments;
+	private LocalDateTime updatedAt;
+}

@@ -1,10 +1,14 @@
 package gyeonggi.gyeonggifesta.member.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import gyeonggi.gyeonggifesta.board.entity.Post;
+import gyeonggi.gyeonggifesta.board.entity.PostComment;
+import gyeonggi.gyeonggifesta.board.entity.PostLike;
 import gyeonggi.gyeonggifesta.event.entity.*;
 import gyeonggi.gyeonggifesta.member.enums.Role;
+import gyeonggi.gyeonggifesta.recommand.entity.AiRecommendation;
 import gyeonggi.gyeonggifesta.util.BaseEntity;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -54,6 +58,18 @@ public class Member extends BaseEntity {
 	private List<EventSearchHistory> eventSearchHistories = new ArrayList<>();
 
 	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<Post> posts = new ArrayList<>();
+
+	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<PostComment> postComments = new ArrayList<>();
+
+	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<PostLike> postLikes = new ArrayList<>();
+
+	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<AiRecommendation> recommendations = new ArrayList<>();
+
+	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventReview> eventReviews = new ArrayList<>();
 
 	@Builder
@@ -96,6 +112,70 @@ public class Member extends BaseEntity {
 	public void removeEventFavorite(EventFavorite eventFavorite) {
 		this.eventFavorites.remove(eventFavorite);
 		eventFavorite.setMember(null);
+	}
+
+	// 연관관계 편의 메서드: Post 추가
+	public void addPost(Post post) {
+		posts.add(post);
+		post.setMember(this);
+	}
+
+	// 연관관계 편의 메서드: Post 제거
+	public void removePost(Post post) {
+		posts.remove(post);
+		post.setMember(null);
+	}
+
+	// 연관관계 편의 메서드: PostComment 추가
+	public void addPostComment(PostComment postComment) {
+		postComments.add(postComment);
+		postComment.setMember(this);
+	}
+
+	// 연관관계 편의 메서드: PostComment 제거
+	public void removePostComment(PostComment postComment) {
+		postComments.remove(postComment);
+		postComment.setMember(null);
+	}
+
+	public void addPostLike(PostLike postLike) {
+		postLikes.add(postLike);
+		postLike.setMember(this);
+	}
+
+
+	public void removePostLike(PostLike postLike) {
+		postLikes.remove(postLike);
+		postLike.setMember(null);
+	}
+
+	// 연관관계 편의 메서드: SearchHistory 추가
+	public void addSearchHistory(EventSearchHistory searchHistory) {
+		eventSearchHistories.add(searchHistory);
+		searchHistory.setMember(this);
+	}
+
+	// 연관관계 편의 메서드: SearchHistory 제거
+	public void removeSearchHistory(EventSearchHistory searchHistory) {
+		eventSearchHistories.remove(searchHistory);
+		searchHistory.setMember(null);
+	}
+
+	public void addRecommendation(AiRecommendation recommendation) {
+		recommendations.add(recommendation);
+	}
+
+	public void removeRecommendation(AiRecommendation recommendation) {
+		eventSearchHistories.remove(recommendation);
+	}
+
+	public void addEventReview(EventReview eventReview) {
+		this.eventReviews.add(eventReview);
+	}
+
+	public void removeEventReview(EventReview eventReview) {
+		this.eventReviews.remove(eventReview);
+		eventReview.setMember(null);
 	}
 
 }

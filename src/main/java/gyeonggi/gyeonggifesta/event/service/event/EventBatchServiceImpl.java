@@ -30,10 +30,9 @@ public class EventBatchServiceImpl implements EventBatchService {
 
 	private final EventRepository eventRepository;
 
-	// 프로젝트 내 다른 컴포넌트에서도 RestTemplate을 사용하므로 주입 유지
 	private final RestTemplate restTemplate;
 
-	// 경기도 문화행사 API 호출 전용 클라이언트 (주차장과 동일한 폴백 전략 적용)
+	// 경기도 문화행사 API 호출 전용 클라이언트
 	private final CultureEventApiClient cultureEventApiClient;
 
 	// 테스트 코드(ReflectionTestUtils)나 환경설정에서 사용할 수 있으니 보관

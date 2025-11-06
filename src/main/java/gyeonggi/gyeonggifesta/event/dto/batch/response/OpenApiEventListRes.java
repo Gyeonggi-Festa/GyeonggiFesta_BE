@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 경기도 문화행사 Open API 응답 DTO (서비스명 고정: GGCULTUREVENTSTUS)
+ * 경기도 문화행사 Open API 응답 DTO (서비스명: GGCULTUREVENTSTUS)
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)

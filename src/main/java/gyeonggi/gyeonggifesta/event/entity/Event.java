@@ -1,6 +1,7 @@
 package gyeonggi.gyeonggifesta.event.entity;
 
 import gyeonggi.gyeonggifesta.event.enums.Status;
+import gyeonggi.gyeonggifesta.recommand.entity.AiRecommendation;
 import gyeonggi.gyeonggifesta.util.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -68,6 +69,9 @@ public class Event extends BaseEntity {
 
 	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventFavorite> eventFavorites = new ArrayList<>();
+
+	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<AiRecommendation> recommendations = new ArrayList<>();
 
 	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventReview> eventReviews = new ArrayList<>();
