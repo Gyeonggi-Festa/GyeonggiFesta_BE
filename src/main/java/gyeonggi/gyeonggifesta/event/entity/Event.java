@@ -10,10 +10,18 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Table(
+		name = "event",
+		uniqueConstraints = {
+				@UniqueConstraint(
+						name = "uk_event_title_reg_cat_org_end",
+						columnNames = {"title", "register_date", "codename", "org_name", "end_date"}
+				)
+		}
+)
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "event")
 public class Event extends BaseEntity {
 
 	@Id

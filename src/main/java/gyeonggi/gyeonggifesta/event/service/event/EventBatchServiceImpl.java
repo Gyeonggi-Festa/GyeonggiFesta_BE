@@ -29,7 +29,6 @@ import java.util.Set;
 public class EventBatchServiceImpl implements EventBatchService {
 
 	private final EventRepository eventRepository;
-
 	private final RestTemplate restTemplate;
 
 	// 경기도 문화행사 API 호출 전용 클라이언트
@@ -45,10 +44,20 @@ public class EventBatchServiceImpl implements EventBatchService {
 		return fetchAllRowsFromApi();
 	}
 
-	/** 중복체크 */
+	/** (구 기준) 중복체크 - 남겨둬도 무방 */
 	@Override
 	public Optional<Event> findByTitleAndRegisterDateAndCodename(String title, LocalDate registerDate, String codename) {
 		return eventRepository.findByTitleAndRegisterDateAndCodename(title, registerDate, codename);
+	}
+
+	/** 중복체크: 제목+등록일+카테고리+기관명+종료일 */
+	@Override
+	public Optional<Event> findByTitleRegisterCategoryOrgEnd(
+			String title, LocalDate registerDate, String codename, String orgName, LocalDate endDate
+	) {
+		return eventRepository.findByTitleAndRegisterDateAndCodenameAndOrgNameAndEndDate(
+				title, registerDate, codename, orgName, endDate
+		);
 	}
 
 	/** 신규 Event 저장 */

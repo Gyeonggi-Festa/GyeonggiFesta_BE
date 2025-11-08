@@ -16,5 +16,9 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 	// 스키마 ->  제목 + 등록일 + 카테고리 로 중복체크
 	Optional<Event> findByTitleAndRegisterDateAndCodename(String title, LocalDate registerDate, String codename);
 
+	Optional<Event> findByTitleAndRegisterDateAndCodenameAndOrgNameAndEndDate(
+			String title, LocalDate registerDate, String codename, String orgName, LocalDate endDate
+	);
+
 	List<Event> findAllByStatus(Status status);
 }
