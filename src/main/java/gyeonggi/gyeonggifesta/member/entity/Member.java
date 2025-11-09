@@ -7,6 +7,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -50,4 +52,5 @@ public class Member extends BaseEntity {
 	public int getAge() {
 		return Period.between(this.birthDay, LocalDate.now()).getYears();
 	}
+
 }
