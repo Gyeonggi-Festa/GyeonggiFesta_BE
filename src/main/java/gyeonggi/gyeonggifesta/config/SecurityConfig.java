@@ -31,6 +31,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final List<String> CORS_WHITELIST = List.of(
+            "https://gyeonggi-festa.vercel.app",
+			"http://43.202.50.44:8080",
             "http://localhost:5173",
             "http://127.0.0.1:5500"
     );
