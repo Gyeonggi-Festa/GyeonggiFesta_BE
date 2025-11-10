@@ -107,10 +107,10 @@ public class JwtTokenProvider {
 		Member member = memberRepository.findByVerifyId(verifyId)
 				.orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
-		Map<String, Object> accessClaims = Map.of(
-				"email", member.getEmail(),
-				"role", member.getRole()
-		);
+                Map<String, Object> accessClaims = Map.of(
+                                "email", member.getEmail(),
+                                "role", member.getRole().name()
+                );
 
 		String newAccessToken = createToken(verifyId, now, accessExpiryDate, accessClaims);
 		String newRefreshToken = createToken(verifyId, now, refreshExpiryDate, null);
