@@ -31,6 +31,8 @@ import java.util.List;
 public class SecurityConfig {
 
 	private static final List<String> CORS_WHITELIST = List.of(
+			"https://gyeonggi-festa.vercel.app",
+			"http://43.202.50.44:8080",
 			"http://localhost:5173",
 			"http://127.0.0.1:5500"
 	);
@@ -40,7 +42,7 @@ public class SecurityConfig {
 			"/api/register",
 			"/api/login",
 			"/api/token/**",
-			"/api/dev/**",  // 개발용 임시 로그인
+			// "/api/dev/**",  // 개발용 임시 로그인
 			"/ws-stomp/**",
 			"/batch/event-sync/run", // 수동 배치 -> 개발때문에 잠시 넣은거
 			"/api/calendar/authorize",
