@@ -1,12 +1,5 @@
 package gyeonggi.gyeonggifesta.event.service.comment;
 
-import lombok.RequiredArgsConstructor;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import gyeonggi.gyeonggifesta.event.dto.comment.request.EventCommentReq;
 import gyeonggi.gyeonggifesta.event.dto.comment.request.EventCommentUpdateReq;
 import gyeonggi.gyeonggifesta.event.dto.comment.response.EventCommentRes;
@@ -19,6 +12,13 @@ import gyeonggi.gyeonggifesta.event.repository.EventRepository;
 import gyeonggi.gyeonggifesta.exception.BusinessException;
 import gyeonggi.gyeonggifesta.member.entity.Member;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
+import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;

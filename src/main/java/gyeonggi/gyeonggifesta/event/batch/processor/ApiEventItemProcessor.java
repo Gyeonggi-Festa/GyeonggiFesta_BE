@@ -26,30 +26,38 @@ public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Ev
 	public Event process(GyeonggiEventRow item) {
 		if (item == null) return null;
 
-		// 중복키: 제목 + WRITNG_DE + CATEGORY_NM
-		String key = n(item.getTitle()) + "_" +
-				n(eventBatchService.convertToLocalDate(item.getWritingDate())) + "_" +
-				n(item.getCategoryNm());
+		LocalDate register = eventBatchService.convertToLocalDate(item.getWritingDate());
+		LocalDate start    = eventBatchService.convertToLocalDate(item.getBeginDate());
+		LocalDate end      = eventBatchService.convertToLocalDate(item.getEndDate());
 
+		// 키용 기관명: INST_NM 우선, 없으면 HOST_INST_NM
+		String orgForKey = firstNonNull(item.getInstNm(), item.getHostInstNm());
+
+		// 강화된 중복키: 제목 + 등록일 + 카테고리 + 기관명 + 종료일
+		String key = String.join("_",
+				n(item.getTitle()),
+				n(register),
+				n(item.getCategoryNm()),
+				n(orgForKey),
+				n(end)
+		);
+
+		// 청크 내 중복 방지
 		if (processedKeys.contains(key)) {
-			log.debug("[SKIP:dup] {}", key);
+			log.info("[SKIP:dup-in-chunk] {}", key);
 			return null;
 		}
 
-		// DB 중복 체크
-		Optional<Event> existing = eventBatchService.findByTitleAndRegisterDateAndCodename(
-				item.getTitle(),
-				eventBatchService.convertToLocalDate(item.getWritingDate()),
-				item.getCategoryNm()
+		// DB 존재 체크(동일 기준)
+		Optional<Event> existing = eventBatchService.findByTitleRegisterCategoryOrgEnd(
+				item.getTitle(), register, item.getCategoryNm(), orgForKey, end
 		);
 		if (existing.isPresent()) {
-			log.debug("[SKIP:exists] {}", key);
+			log.info("[SKIP:exists-in-db] {}", key);
 			return null;
 		}
 
-		LocalDate start = eventBatchService.convertToLocalDate(item.getBeginDate());
-		LocalDate end   = eventBatchService.convertToLocalDate(item.getEndDate());
-
+		// 상태 계산
 		Status status;
 		if (start != null && start.isAfter(LocalDate.now()))      status = Status.NOT_STARTED;
 		else if (end != null && end.isBefore(LocalDate.now()))    status = Status.END;
@@ -57,14 +65,17 @@ public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Ev
 
 		String isFree = (item.getFeeInfo() != null && item.getFeeInfo().contains("무료")) ? "Y" : "N";
 
+		// 저장/표시용 기관명: HOST_INST_NM 우선, 없으면 INST_NM
+		String orgForPersist = firstNonNull(item.getHostInstNm(), item.getInstNm());
+
 		Event e = Event.builder()
 				.status(status)
 				.codename(item.getCategoryNm())
 				.title(item.getTitle())
-				.orgName(item.getHostInstNm())
+				.orgName(orgForPersist)
 				.useFee(item.getFeeInfo())
 				.timeInfo(item.getTimeInfo())
-				.registerDate(eventBatchService.convertToLocalDate(item.getWritingDate()))
+				.registerDate(register)
 				.startDate(start)
 				.endDate(end)
 				.orgLink(item.getHomepageUrl() != null ? item.getHomepageUrl() : item.getUrl())
@@ -78,5 +89,8 @@ public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Ev
 		return e;
 	}
 
+	private static String firstNonNull(String a, String b) {
+		return (a != null && !a.isBlank()) ? a : (b != null ? b : null);
+	}
 	private static String n(Object s) { return s == null ? "" : String.valueOf(s); }
 }

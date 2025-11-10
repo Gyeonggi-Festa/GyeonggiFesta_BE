@@ -1,5 +1,6 @@
 package gyeonggi.gyeonggifesta.aws.service;
 
+import gyeonggi.gyeonggifesta.board.dto.media.response.PresignedUrlResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,7 +10,9 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -47,6 +50,105 @@ public class S3ServiceImpl implements S3Service {
 		this.s3Presigner = S3Presigner.builder()
 			.credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
 			.region(Region.of(region))
+			.build();
+	}
+
+	/**
+	 * 파일 업로드를 위한 pre-signed URL을 생성합니다.
+	 *
+	 * @param contentType 업로드할 파일의 콘텐츠 타입 (예: "image/jpeg", "video/mp4")
+	 * @return pre-signed URL 문자열
+	 */
+	@Override
+	public PresignedUrlResponse generatePostMediaPresignedUrl(String originalFileName, String contentType) {
+
+		String extension = getExtensionFromContentType(contentType);
+
+		// 고유한 s3Key 생성 (예: "seoulfest/post/media/20250402123045_uniqueId.jpg")
+		String objectKey = generatePostUniqueS3KeyWithExtension(originalFileName, extension);
+
+		// S3에 업로드할 객체의 요청 객체 생성
+		PutObjectRequest objectRequest = PutObjectRequest.builder()
+			.bucket(bucketName)
+			.key(objectKey)
+			.contentType(contentType)
+			.build();
+
+		// pre-signed URL 요청 생성 (유효기간 15분)
+		PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+			.signatureDuration(Duration.ofMinutes(15))
+			.putObjectRequest(objectRequest)
+			.build();
+
+		// pre-signed URL 생성 및 문자열로 반환
+		String presignedUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
+
+		// 생성된 s3Key와 pre-signed URL을 함께 반환
+		return PresignedUrlResponse.builder()
+			.s3Key(objectKey)
+			.presignedUrl(presignedUrl)
+			.build();
+	}
+
+	@Override
+	public PresignedUrlResponse generateChatMediaPresignedUrl(String originalFileName, String contentType) {
+
+		String extension = getExtensionFromContentType(contentType);
+
+		// 고유한 s3Key 생성 (예: "seoulfest/chat/media/20250402123045_uniqueId.jpg")
+		String objectKey = generateChatUniqueS3KeyWithExtension(originalFileName, extension);
+
+		// S3에 업로드할 객체의 요청 객체 생성
+		PutObjectRequest objectRequest = PutObjectRequest.builder()
+			.bucket(bucketName)
+			.key(objectKey)
+			.contentType(contentType)
+			.build();
+
+		// pre-signed URL 요청 생성 (유효기간 15분)
+		PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+			.signatureDuration(Duration.ofMinutes(15))
+			.putObjectRequest(objectRequest)
+			.build();
+
+		// pre-signed URL 생성 및 문자열로 반환
+		String presignedUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
+
+		// 생성된 s3Key와 pre-signed URL을 함께 반환
+		return PresignedUrlResponse.builder()
+			.s3Key(objectKey)
+			.presignedUrl(presignedUrl)
+			.build();
+	}
+
+	@Override
+	public PresignedUrlResponse generateReviewMediaPresignedUrl(String originalFileName, String contentType) {
+
+		String extension = getExtensionFromContentType(contentType);
+
+		// 고유한 s3Key 생성 (예: "seoulfest/review/media/20250402123045_uniqueId.jpg")
+		String objectKey = generateReviewUniqueS3KeyWithExtension(originalFileName, extension);
+
+		// S3에 업로드할 객체의 요청 객체 생성
+		PutObjectRequest objectRequest = PutObjectRequest.builder()
+			.bucket(bucketName)
+			.key(objectKey)
+			.contentType(contentType)
+			.build();
+
+		// pre-signed URL 요청 생성 (유효기간 15분)
+		PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+			.signatureDuration(Duration.ofMinutes(15))
+			.putObjectRequest(objectRequest)
+			.build();
+
+		// pre-signed URL 생성 및 문자열로 반환
+		String presignedUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
+
+		// 생성된 s3Key와 pre-signed URL을 함께 반환
+		return PresignedUrlResponse.builder()
+			.s3Key(objectKey)
+			.presignedUrl(presignedUrl)
 			.build();
 	}
 

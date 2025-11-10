@@ -1,5 +1,9 @@
 package gyeonggi.gyeonggifesta.config;
 
+import gyeonggi.gyeonggifesta.event.batch.listener.EventJobListener;
+import gyeonggi.gyeonggifesta.event.batch.step.EventSyncStepConfig;
+import gyeonggi.gyeonggifesta.event.batch.step.FaultTolerantEventStepConfig;
+import gyeonggi.gyeonggifesta.recommand.batch.listener.RecommendJobListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -13,10 +17,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
-import gyeonggi.gyeonggifesta.event.batch.listener.EventJobListener;
-import gyeonggi.gyeonggifesta.event.batch.step.EventSyncStepConfig;
-import gyeonggi.gyeonggifesta.event.batch.step.FaultTolerantEventStepConfig;
-import gyeonggi.gyeonggifesta.recommand.batch.listener.RecommendJobListener;
 
 @Slf4j
 @Configuration
@@ -60,7 +60,7 @@ public class BatchConfig {
 			.build();
 	}
 
-	@Scheduled(cron = "0 0 22 * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 */1 * * * ?", zone = "Asia/Seoul")
 	public void performEventSyncJob() throws Exception {
 		JobParameters jobParameters = new JobParametersBuilder()
 			.addLong("time", System.currentTimeMillis())

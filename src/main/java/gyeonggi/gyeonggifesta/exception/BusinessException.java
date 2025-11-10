@@ -1,8 +1,8 @@
 package gyeonggi.gyeonggifesta.exception;
 
+import gyeonggi.gyeonggifesta.util.response.error_code.ErrorCode;
 import lombok.Builder;
 import lombok.Getter;
-import gyeonggi.gyeonggifesta.util.response.error_code.ErrorCode;
 
 public class BusinessException extends RuntimeException {
 

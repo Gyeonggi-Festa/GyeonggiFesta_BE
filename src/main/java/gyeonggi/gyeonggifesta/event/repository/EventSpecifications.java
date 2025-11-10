@@ -3,6 +3,7 @@ package gyeonggi.gyeonggifesta.event.repository;
 import gyeonggi.gyeonggifesta.event.entity.Event;
 import gyeonggi.gyeonggifesta.event.enums.Status;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Path;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -63,35 +64,42 @@ public class EventSpecifications {
 	 * @return 생성된 명세
 	 */
 	public static Specification<Event> dateRangeOverlaps(LocalDate startDate, LocalDate endDate) {
-		return (root, query, criteriaBuilder) -> {
+		return (root, query, cb) -> {
 			if (startDate == null && endDate == null) {
-				return criteriaBuilder.conjunction();
+				return cb.conjunction();
 			}
 
-			// startDate를 LocalDateTime의 시작 시간(00:00:00)으로 변환
-			Expression<LocalDateTime> eventStartDate = root.get("startDate");
-			Expression<LocalDateTime> eventEndDate = root.get("endDate");
+			// Event 엔티티의 컬럼 타입이 LocalDate 이므로 LocalDate로 다뤄야 안전
+			Path<LocalDate> evStart = root.get("startDate");
+			Path<LocalDate> evEnd   = root.get("endDate");
 
-			// 시작일만 존재하는 경우: 이벤트 종료일 >= 검색 시작일
+			// 검색 시작만 지정: evEnd >= startDate  (evEnd == null -> open ended 로 간주: 매칭)
 			if (startDate != null && endDate == null) {
-				LocalDateTime startOfDay = startDate.atStartOfDay();
-				return criteriaBuilder.greaterThanOrEqualTo(eventEndDate, startOfDay);
+				return cb.or(
+						cb.isNull(evEnd),
+						cb.greaterThanOrEqualTo(evEnd, startDate)
+				);
 			}
 
-			// 종료일만 존재하는 경우: 이벤트 시작일 <= 검색 종료일의 끝
-			if (startDate == null && endDate != null) {
-				LocalDateTime endOfDay = endDate.atTime(23, 59, 59);
-				return criteriaBuilder.lessThanOrEqualTo(eventStartDate, endOfDay);
+			// 검색 종료만 지정: evStart <= endDate  (evStart == null -> open started 로 간주: 매칭)
+			if (startDate == null) { // endDate != null
+				return cb.or(
+						cb.isNull(evStart),
+						cb.lessThanOrEqualTo(evStart, endDate)
+				);
 			}
 
-			// 두 날짜 범위가 겹치는 조건:
-			// (이벤트 시작일 <= 검색 종료일의 끝) AND (이벤트 종료일 >= 검색 시작일의 시작)
-			LocalDateTime startOfDay = startDate.atStartOfDay();
-			LocalDateTime endOfDay = endDate.atTime(23, 59, 59);
-
-			return criteriaBuilder.and(
-				criteriaBuilder.lessThanOrEqualTo(eventStartDate, endOfDay),
-				criteriaBuilder.greaterThanOrEqualTo(eventEndDate, startOfDay)
+			// 둘 다 지정: (evStart <= endDate) AND (evEnd >= startDate)
+			// evStart/evEnd 가 null일 수 있으므로 각각 open-ended 로 허용
+			return cb.and(
+					cb.or(
+							cb.isNull(evStart),
+							cb.lessThanOrEqualTo(evStart, endDate)
+					),
+					cb.or(
+							cb.isNull(evEnd),
+							cb.greaterThanOrEqualTo(evEnd, startDate)
+					)
 			);
 		};
 	}

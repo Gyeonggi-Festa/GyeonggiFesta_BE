@@ -129,10 +129,6 @@ public class CultureEventApiClient {
 		String errorMessage;
 	}
 
-	/**
-	 * 경기도 표준: {SERVICE_NAME: [ { head: [...] }, { row: [...] } ]}
-	 * 또는 에러: {"RESULT":{"CODE":"ERROR-310","MESSAGE":"..."}} 형태
-	 */
 	private ParseResult parseAndCollect(JsonNode body, List<JsonNode> rows) {
 		ParseResult r = new ParseResult();
 

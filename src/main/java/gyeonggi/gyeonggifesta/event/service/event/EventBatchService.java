@@ -14,6 +14,10 @@ public interface EventBatchService {
 
 	Optional<Event> findByTitleAndRegisterDateAndCodename(String title, LocalDate registerDate, String codename);
 
+	Optional<Event> findByTitleRegisterCategoryOrgEnd(
+			String title, LocalDate registerDate, String codename, String orgName, LocalDate endDate
+	);
+
 	Event saveEvent(Event event);
 
 	int updateMissingEvents(Set<String> apiEventKeys);

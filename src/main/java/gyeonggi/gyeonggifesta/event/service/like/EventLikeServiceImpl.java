@@ -1,8 +1,5 @@
 package gyeonggi.gyeonggifesta.event.service.like;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import gyeonggi.gyeonggifesta.event.entity.Event;
 import gyeonggi.gyeonggifesta.event.entity.EventLike;
 import gyeonggi.gyeonggifesta.event.exception.EventErrorCode;
@@ -11,6 +8,9 @@ import gyeonggi.gyeonggifesta.event.repository.EventRepository;
 import gyeonggi.gyeonggifesta.exception.BusinessException;
 import gyeonggi.gyeonggifesta.member.entity.Member;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

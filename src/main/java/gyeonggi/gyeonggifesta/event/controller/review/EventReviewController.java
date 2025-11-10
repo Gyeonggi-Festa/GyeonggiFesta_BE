@@ -16,7 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 이벤트 리뷰 관련 API를 처리하는 컨트롤러
+ * 이벤트 리뷰 관련 API를 처리
  */
 @RestController
 @RequiredArgsConstructor
@@ -47,7 +47,7 @@ public class EventReviewController {
 	}
 
 	/**
-	 * 이벤트의 리뷰 목록을 조회합니다.
+	 * 이벤트의 리뷰 목록을 조회
 	 *
 	 * @param eventId 이벤트 ID
 	 * @param pageable 페이징 정보
@@ -62,7 +62,7 @@ public class EventReviewController {
 	}
 
 	/**
-	 * 특정 리뷰를 조회합니다.
+	 * 특정 리뷰 조회
 	 *
 	 * @param reviewId 리뷰 ID
 	 * @return 리뷰 정보
@@ -75,7 +75,7 @@ public class EventReviewController {
 	}
 
 	/**
-	 * 로그인한 사용자의 리뷰 목록을 조회합니다.
+	 * 로그인한 사용자의 리뷰 목록 조회
 	 *
 	 * @param pageable 페이징 정보
 	 * @return 페이징된 리뷰 목록
@@ -89,7 +89,7 @@ public class EventReviewController {
 	}
 
 	/**
-	 * 이벤트에 대한 현재 사용자의 리뷰를 조회합니다.
+	 * 이벤트에 대한 현재 사용자의 리뷰 조회
 	 *
 	 * @param eventId 이벤트 ID
 	 * @return 리뷰 정보, 없으면 null
