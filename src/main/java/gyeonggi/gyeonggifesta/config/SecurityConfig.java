@@ -46,7 +46,8 @@ public class SecurityConfig {
 			"/ws-stomp/**",
 			"/batch/event-sync/run", // 수동 배치 -> 개발때문에 잠시 넣은거
 			"/api/calendar/authorize",
-			"/api/calendar/callback"
+			"/api/calendar/callback",
+			"https://gyeonggi-festa.vercel.app"
 	);
 
 	private final CustomOAuth2UserService customOAuth2UserService;
