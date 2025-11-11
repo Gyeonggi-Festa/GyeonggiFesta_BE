@@ -12,6 +12,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
@@ -33,6 +34,10 @@ public class EventStepConfig {
 				.reader(openApiEventItemReader)
 				.processor(apiEventItemProcessor)
 				.writer(eventItemWriter)
+				// 내결함: 개별 레코드 실패 시 스킵하고 계속
+				.faultTolerant()
+				.skip(DataIntegrityViolationException.class)
+				.skipLimit(200)
 				.build();
 	}
 

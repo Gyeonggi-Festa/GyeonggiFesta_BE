@@ -3,23 +3,30 @@ package gyeonggi.gyeonggifesta.event.batch.processor;
 import gyeonggi.gyeonggifesta.event.dto.batch.response.OpenApiEventListRes.GyeonggiEventRow;
 import gyeonggi.gyeonggifesta.event.entity.Event;
 import gyeonggi.gyeonggifesta.event.enums.Status;
+import gyeonggi.gyeonggifesta.event.repository.EventRepository;
 import gyeonggi.gyeonggifesta.event.service.event.EventBatchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
+
+import static gyeonggi.gyeonggifesta.event.util.TextNormalizer.norm;
+import static gyeonggi.gyeonggifesta.event.util.TextNormalizer.clampUrl;
 
 @Slf4j
 @Component
+@StepScope
 @RequiredArgsConstructor
 public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Event> {
 
 	private final EventBatchService eventBatchService;
+	private final EventRepository eventRepository;
+
 	private final Set<String> processedKeys = new HashSet<>();
 
 	@Override
@@ -30,29 +37,28 @@ public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Ev
 		LocalDate start    = eventBatchService.convertToLocalDate(item.getBeginDate());
 		LocalDate end      = eventBatchService.convertToLocalDate(item.getEndDate());
 
-		// 키용 기관명: INST_NM 우선, 없으면 HOST_INST_NM
-		String orgForKey = firstNonNull(item.getInstNm(), item.getHostInstNm());
+		// HOST 우선(저장/존재확인/키 모두 동일 기준)
+		String orgSelected = firstNonNull(item.getHostInstNm(), item.getInstNm());
 
-		// 강화된 중복키: 제목 + 등록일 + 카테고리 + 기관명 + 종료일
-		String key = String.join("_",
-				n(item.getTitle()),
-				n(register),
-				n(item.getCategoryNm()),
-				n(orgForKey),
-				n(end)
-		);
+		// 정규화
+		String nTitle = norm(item.getTitle());
+		String nCat   = norm(item.getCategoryNm());
+		String nOrg   = norm(orgSelected);
+		String nReg   = register == null ? "" : register.toString();
+		String nEnd   = end == null ? "" : end.toString();
 
-		// 청크 내 중복 방지
+		String key = String.join("|", nTitle, nReg, nCat, nOrg, nEnd);
+
 		if (processedKeys.contains(key)) {
 			log.info("[SKIP:dup-in-chunk] {}", key);
 			return null;
 		}
 
-		// DB 존재 체크(동일 기준)
-		Optional<Event> existing = eventBatchService.findByTitleRegisterCategoryOrgEnd(
-				item.getTitle(), register, item.getCategoryNm(), orgForKey, end
-		);
-		if (existing.isPresent()) {
+		boolean exists = eventRepository
+				.findByTitleAndRegisterDateAndCodenameAndOrgNameAndEndDate(nTitle, register, nCat, nOrg, end)
+				.isPresent();
+
+		if (exists) {
 			log.info("[SKIP:exists-in-db] {}", key);
 			return null;
 		}
@@ -65,23 +71,25 @@ public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Ev
 
 		String isFree = (item.getFeeInfo() != null && item.getFeeInfo().contains("무료")) ? "Y" : "N";
 
-		// 저장/표시용 기관명: HOST_INST_NM 우선, 없으면 INST_NM
-		String orgForPersist = firstNonNull(item.getHostInstNm(), item.getInstNm());
+		// URL 방어: 너무 긴 URL은 잘라서 저장
+		String orgLink = clampUrl(item.getHomepageUrl() != null ? item.getHomepageUrl() : item.getUrl());
+		String mainImg = clampUrl(item.getImageUrl());
+		String portal  = clampUrl(item.getUrl());
 
 		Event e = Event.builder()
 				.status(status)
-				.codename(item.getCategoryNm())
-				.title(item.getTitle())
-				.orgName(orgForPersist)
+				.codename(nCat)
+				.title(nTitle)
+				.orgName(nOrg)
 				.useFee(item.getFeeInfo())
 				.timeInfo(item.getTimeInfo())
 				.registerDate(register)
 				.startDate(start)
 				.endDate(end)
-				.orgLink(item.getHomepageUrl() != null ? item.getHomepageUrl() : item.getUrl())
-				.mainImg(item.getImageUrl())
+				.orgLink(orgLink)
+				.mainImg(mainImg)
 				.isFree(isFree)
-				.portal(item.getUrl())
+				.portal(portal)
 				.build();
 
 		processedKeys.add(key);
@@ -92,5 +100,4 @@ public class ApiEventItemProcessor implements ItemProcessor<GyeonggiEventRow, Ev
 	private static String firstNonNull(String a, String b) {
 		return (a != null && !a.isBlank()) ? a : (b != null ? b : null);
 	}
-	private static String n(Object s) { return s == null ? "" : String.valueOf(s); }
 }
