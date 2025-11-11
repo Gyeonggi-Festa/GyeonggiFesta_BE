@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class BatchTriggerController {
 
     private final JobLauncher jobLauncher;
+    private final Job eventSyncJob; // BatchConfig.eventSyncJob() 에서 등록된 빈
 
     @GetMapping("/event-sync/run")
     public ResponseEntity<String> runEventSyncJob() throws Exception {
@@ -28,6 +29,7 @@ public class BatchTriggerController {
                 .addLong("time", System.currentTimeMillis())
                 .toJobParameters();
 
+        jobLauncher.run(eventSyncJob, params);
         return ResponseEntity.ok("eventSyncJob launched");
     }
 }

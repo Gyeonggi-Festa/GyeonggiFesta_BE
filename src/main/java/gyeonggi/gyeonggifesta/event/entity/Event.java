@@ -1,6 +1,7 @@
 package gyeonggi.gyeonggifesta.event.entity;
 
 import gyeonggi.gyeonggifesta.event.enums.Status;
+import gyeonggi.gyeonggifesta.recommand.entity.AiRecommendation;
 import gyeonggi.gyeonggifesta.util.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,10 +10,18 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Table(
+		name = "event",
+		uniqueConstraints = {
+				@UniqueConstraint(
+						name = "uk_event_title_reg_cat_org_end",
+						columnNames = {"title", "register_date", "codename", "org_name", "end_date"}
+				)
+		}
+)
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "event")
 public class Event extends BaseEntity {
 
 	@Id
@@ -68,6 +77,9 @@ public class Event extends BaseEntity {
 
 	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventFavorite> eventFavorites = new ArrayList<>();
+
+	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<AiRecommendation> recommendations = new ArrayList<>();
 
 	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventReview> eventReviews = new ArrayList<>();
