@@ -56,15 +56,17 @@ public class Event extends BaseEntity {
 	@Column(name = "end_date")
 	private LocalDate endDate;           // END_DE
 
-	@Column(name = "org_link")
+	// URL 계열은 TEXT로: 매우 긴 URL 대응
+	@Column(name = "org_link", columnDefinition = "TEXT")
 	private String orgLink;              // HMPG_URL (fallback: URL)
 
-	@Column(name = "main_img")
+	@Column(name = "main_img", columnDefinition = "TEXT")
 	private String mainImg;              // IMAGE_URL
 
 	@Column(name = "is_free")
 	private String isFree;               // "Y"/"N" (무료 여부 추론)
 
+	@Column(columnDefinition = "TEXT")
 	private String portal;               // URL
 
 	private double rating = 0;           // 리뷰 평균 점수
