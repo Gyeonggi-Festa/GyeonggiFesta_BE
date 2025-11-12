@@ -33,8 +33,8 @@ public class JwtFilter extends OncePerRequestFilter {
 			"/api/login",
 			"/api/token/exchange",
 			"/api/token/refresh",
-			"/ws-stomp/**"
-			// "/api/dev/**" // -> 개발용 - 임시코드 직접 생성
+			"/ws-stomp/**",
+			"/api/dev/**" // -> 개발용 - 임시코드 직접 생성
 	);
 
 	private final JwtTokenProvider jwtTokenProvider;
