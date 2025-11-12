@@ -72,6 +72,9 @@ public class Member extends BaseEntity {
 	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventReview> eventReviews = new ArrayList<>();
 
+	@OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<EventViewHistory> eventViewHistories = new ArrayList<>();
+
 	@Builder
 	public Member(String verifyId, String username, String email, Role role, String gender, LocalDate birthDay) {
 		this.verifyId = verifyId;
@@ -82,8 +85,9 @@ public class Member extends BaseEntity {
 		this.birthDay = birthDay;
 	}
 
+	// NPE 가드 추가
 	public int getAge() {
-		return Period.between(this.birthDay, LocalDate.now()).getYears();
+		return birthDay == null ? 0 : Period.between(this.birthDay, LocalDate.now()).getYears();
 	}
 
 	// 연관관계 편의 메서드
@@ -105,77 +109,83 @@ public class Member extends BaseEntity {
 		eventLike.setMember(null);
 	}
 
-	public void addEventFavorite(EventFavorite eventFavorite) {
-		this.eventFavorites.add(eventFavorite);
-	}
-
-	public void removeEventFavorite(EventFavorite eventFavorite) {
-		this.eventFavorites.remove(eventFavorite);
-		eventFavorite.setMember(null);
-	}
-
-	// 연관관계 편의 메서드: Post 추가
+	// Post
 	public void addPost(Post post) {
 		posts.add(post);
 		post.setMember(this);
 	}
 
-	// 연관관계 편의 메서드: Post 제거
 	public void removePost(Post post) {
 		posts.remove(post);
 		post.setMember(null);
 	}
 
-	// 연관관계 편의 메서드: PostComment 추가
+	// PostComment
 	public void addPostComment(PostComment postComment) {
 		postComments.add(postComment);
 		postComment.setMember(this);
 	}
 
-	// 연관관계 편의 메서드: PostComment 제거
 	public void removePostComment(PostComment postComment) {
 		postComments.remove(postComment);
 		postComment.setMember(null);
 	}
 
+	// PostLike
 	public void addPostLike(PostLike postLike) {
 		postLikes.add(postLike);
 		postLike.setMember(this);
 	}
-
 
 	public void removePostLike(PostLike postLike) {
 		postLikes.remove(postLike);
 		postLike.setMember(null);
 	}
 
-	// 연관관계 편의 메서드: SearchHistory 추가
+	public void addEventFavorite(EventFavorite eventFavorite) {
+		this.eventFavorites.add(eventFavorite);
+	}
+
+	public void removeEventFavorite(EventFavorite eventFavorite) {
+		this.eventFavorites.remove(eventFavorite);
+	}
+
+	// SearchHistory
 	public void addSearchHistory(EventSearchHistory searchHistory) {
 		eventSearchHistories.add(searchHistory);
 		searchHistory.setMember(this);
 	}
 
-	// 연관관계 편의 메서드: SearchHistory 제거
 	public void removeSearchHistory(EventSearchHistory searchHistory) {
 		eventSearchHistories.remove(searchHistory);
 		searchHistory.setMember(null);
 	}
 
+	public void addViewHistory(EventViewHistory viewHistory) {
+		eventViewHistories.add(viewHistory);
+	}
+
+	public void removeViewHistory(EventViewHistory viewHistory) {
+		eventViewHistories.remove(viewHistory);
+	}
+
+	// AiRecommendation
 	public void addRecommendation(AiRecommendation recommendation) {
 		recommendations.add(recommendation);
 	}
 
 	public void removeRecommendation(AiRecommendation recommendation) {
-		eventSearchHistories.remove(recommendation);
+		recommendations.remove(recommendation);
 	}
 
+	// EventReview
 	public void addEventReview(EventReview eventReview) {
 		this.eventReviews.add(eventReview);
+		eventReview.setMember(this); // EventReview에는 @Setter 존재
 	}
 
 	public void removeEventReview(EventReview eventReview) {
 		this.eventReviews.remove(eventReview);
 		eventReview.setMember(null);
 	}
-
 }
