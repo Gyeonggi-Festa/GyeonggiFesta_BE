@@ -1,12 +1,13 @@
-// path: src/main/java/gyeonggi/gyeonggifesta/recommand/service/AiRecommendServiceImpl.java
 package gyeonggi.gyeonggifesta.recommand.service;
 
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;
 import gyeonggi.gyeonggifesta.event.entity.Event;
 import gyeonggi.gyeonggifesta.event.entity.EventFavorite;
 import gyeonggi.gyeonggifesta.event.entity.EventSearchHistory;
+import gyeonggi.gyeonggifesta.event.entity.EventViewHistory;
 import gyeonggi.gyeonggifesta.event.repository.EventFavoriteRepository;
 import gyeonggi.gyeonggifesta.event.repository.EventSearchHistoryRepository;
+import gyeonggi.gyeonggifesta.event.repository.EventViewHistoryRepository;
 import gyeonggi.gyeonggifesta.member.entity.Member;
 import gyeonggi.gyeonggifesta.member.repository.MemberRepository;
 import gyeonggi.gyeonggifesta.recommand.dto.request.AiRecommendReq;
@@ -15,6 +16,7 @@ import gyeonggi.gyeonggifesta.recommand.entity.AiRecommendation;
 import gyeonggi.gyeonggifesta.recommand.repository.AiRecommendationRepository;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -32,6 +34,7 @@ public class AiRecommendServiceImpl implements AiRecommendService {
 	private final EventSearchHistoryRepository eventSearchHistoryRepository;
 	private final EventFavoriteRepository eventFavoriteRepository;
 	private final MemberRepository memberRepository;
+	private final EventViewHistoryRepository eventViewHistoryRepository;
 	private final SecurityUtil securityUtil;
 
 	@Override
@@ -119,11 +122,15 @@ public class AiRecommendServiceImpl implements AiRecommendService {
 		// 회원의 즐겨찾기 목록 조회
 		List<String> favorites = getFavorites(memberId);
 
+		// 회원의 조회(상세 열람) 기록 조회
+		List<String> views = getViews(memberId);
+
 		// 조회한 정보로 DTO 생성 및 반환
 		return AiRecommendReq.builder()
 				.userid(verifyId)  // 필드명을 API 요구사항에 맞춰 소문자로 유지
 				.searchHistory(searchHistories)
 				.favorites(favorites)
+				.views(views)      // 이부분 추가
 				.build();
 	}
 
@@ -150,6 +157,27 @@ public class AiRecommendServiceImpl implements AiRecommendService {
 		List<EventFavorite> favorites = eventFavoriteRepository.findByMemberId(memberId);
 		return favorites.stream()
 				.map(favorite -> favorite.getEvent().getTitle())
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * 회원 ID로 조회(상세 열람) 기록 조회
+	 * - 최근 100개만 사용 (필요 시 조정 가능)
+	 *
+	 * @param memberId 회원 ID
+	 * @return 조회 이벤트 제목 목록
+	 */
+	private List<String> getViews(Long memberId) {
+		Member member = memberRepository.findById(memberId).orElse(null);
+		if (member == null) {
+			return Collections.emptyList();
+		}
+		return eventViewHistoryRepository
+				.findByMemberOrderByCreatedAtDesc(member, PageRequest.of(0, 100))
+				.getContent()
+				.stream()
+				.map(EventViewHistory::getEvent)
+				.map(Event::getTitle)
 				.collect(Collectors.toList());
 	}
 
