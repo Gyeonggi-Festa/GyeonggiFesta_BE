@@ -5,6 +5,7 @@ import gyeonggi.gyeonggifesta.event.dto.event.response.EventDetailRes;
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;
 import gyeonggi.gyeonggifesta.event.enums.Status;
 import gyeonggi.gyeonggifesta.event.service.event.EventService;
+import gyeonggi.gyeonggifesta.event.service.viewhistory.EventViewHistoryService;
 import gyeonggi.gyeonggifesta.util.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,8 @@ import java.time.LocalDate;
 public class EventController {
 
 	private final EventService eventService;
+	private final EventViewHistoryService eventViewHistoryService;
+
 
 	@GetMapping("/event")
 	public ResponseEntity<Response<Page<EventRes>>> getEvents(
@@ -53,6 +56,7 @@ public class EventController {
 	@GetMapping("/event/{eventId}")
 	public ResponseEntity<Response<EventDetailRes>> getEventDetail(@PathVariable Long eventId) {
 		EventDetailRes eventDetail = eventService.getEventDetail(eventId);
+		eventViewHistoryService.createView(eventId);
 		return Response.ok(eventDetail).toResponseEntity();
 	}
 }
