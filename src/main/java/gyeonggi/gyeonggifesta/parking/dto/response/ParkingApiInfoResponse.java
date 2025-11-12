@@ -21,7 +21,6 @@ public class ParkingApiInfoResponse {
 		@JsonProperty("ParkingPlace")
 		private List<Section> parkingPlace;
 
-		/** head 섹션 반환 (없으면 null) */
 		public Head getHead() {
 			if (parkingPlace == null) return null;
 			for (Section s : parkingPlace) {
@@ -30,7 +29,6 @@ public class ParkingApiInfoResponse {
 			return null;
 		}
 
-		/** row(실데이터 리스트) 반환 (없으면 null) */
 		public List<ParkingInfo> getRow() {
 			if (parkingPlace == null) return null;
 			for (Section s : parkingPlace) {
@@ -39,7 +37,6 @@ public class ParkingApiInfoResponse {
 			return null;
 		}
 
-		/** 결과코드/메시지 반환 (없으면 null) */
 		public Result getResult() {
 			Head h = getHead();
 			return h != null ? h.getResult() : null;
@@ -92,14 +89,14 @@ public class ParkingApiInfoResponse {
 		@JsonProperty("LOCPLC_LOTNO_ADDR") private String lotnoAddr;
 		@JsonProperty("PARKNG_COMPRT_PLANE_CNT") private Integer totalCnt;
 
-		@JsonProperty("WKDAY_OPERT_BEGIN_TM") private String wkdayBegin; // "HH:mm"
+		@JsonProperty("WKDAY_OPERT_BEGIN_TM") private String wkdayBegin;
 		@JsonProperty("WKDAY_OPERT_END_TM")   private String wkdayEnd;
 		@JsonProperty("SAT_OPERT_BEGIN_TM")   private String satBegin;
 		@JsonProperty("SAT_OPERT_END_TM")     private String satEnd;
 		@JsonProperty("HOLIDAY_OPERT_BEGIN_TM") private String holBegin;
 		@JsonProperty("HOLIDAY_OPERT_END_TM")   private String holEnd;
 
-		@JsonProperty("CHRG_INFO")              private String chargeInfo; // 유료/무료/혼합
+		@JsonProperty("CHRG_INFO")              private String chargeInfo;
 		@JsonProperty("PARKNG_BASIS_TM")        private Integer baseTime;
 		@JsonProperty("PARKNG_BASIS_USE_CHRG")  private Integer baseRate;
 		@JsonProperty("ADD_UNIT_TM")            private Integer addTime;
@@ -117,9 +114,9 @@ public class ParkingApiInfoResponse {
 		public String getTELNO() { return tel; }
 		public int    getTotalParkingCount() { return totalCnt == null ? 0 : totalCnt; }
 		public String getPayYn() { return "무료".equals(chargeInfo) ? "N" : "Y"; }
-		public String getNightPayYn() { return "N"; } // 미제공 → 기본 N
+		public String getNightPayYn() { return "N"; }
 
-		public String getWeekdayOpenTime()  { return wkdayBegin; } // "HH:mm"
+		public String getWeekdayOpenTime()  { return wkdayBegin; }
 		public String getWeekdayCloseTime() { return wkdayEnd;   }
 		public String getWeekendOpenTime()  { return satBegin;   }
 		public String getWeekendCloseTime() { return satEnd;     }
