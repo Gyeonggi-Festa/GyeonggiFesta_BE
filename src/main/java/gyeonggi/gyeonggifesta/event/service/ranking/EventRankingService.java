@@ -1,7 +1,6 @@
 package gyeonggi.gyeonggifesta.event.service.ranking;
 
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;
-
 import java.util.List;
 
 public interface EventRankingService {

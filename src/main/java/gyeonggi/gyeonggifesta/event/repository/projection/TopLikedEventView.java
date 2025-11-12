@@ -2,5 +2,5 @@ package gyeonggi.gyeonggifesta.event.repository.projection;
 
 public interface TopLikedEventView {
     Long getEventId();
-    long getLikeCount();
+    Long getLikeCount(); // COUNT → Long 매핑
 }
