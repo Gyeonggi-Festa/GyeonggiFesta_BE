@@ -16,17 +16,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdatePostReq {
-        private String title;
-        private String content;
-        private List<String> keyList;
+    private String title;
+    private String content;
+    private List<String> keyList;
 
-        private Long eventId;
+    private Long eventId;
 
-        @JsonFormat(pattern = "yyyy-MM-dd")
-        private List<LocalDate> visitDates;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private List<LocalDate> visitDates;
 
-        private Integer recruitPeople;
-        private Integer recruitPeriod;
-        private GenderPreference genderPreference;
-        private AgeRange ageRange;
+    private Integer recruitPeople;
+    private Integer recruitPeriod;
+    private GenderPreference genderPreference;
+    private AgeRange ageRange;
 }

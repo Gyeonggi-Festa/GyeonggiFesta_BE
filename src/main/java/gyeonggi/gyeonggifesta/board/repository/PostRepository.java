@@ -10,12 +10,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
-	Page<Post> findByBoardId(Long boardId, Pageable pageable);
+    Page<Post> findByBoardId(Long boardId, Pageable pageable);
 
-	@Query("SELECT p FROM Post p LEFT JOIN p.postLikes l WHERE p.board.id = :boardId GROUP BY p.id ORDER BY COUNT(l) DESC")
-	Page<Post> findByBoardIdOrderByLikesCountDesc(@Param("boardId") Long boardId, Pageable pageable);
+    @Query("SELECT p FROM Post p LEFT JOIN p.postLikes l WHERE p.board.id = :boardId GROUP BY p.id ORDER BY COUNT(l) DESC")
+    Page<Post> findByBoardIdOrderByLikesCountDesc(@Param("boardId") Long boardId, Pageable pageable);
 
-	@Query("SELECT p FROM Post p LEFT JOIN p.postComments c WHERE p.board.id = :boardId GROUP BY p.id ORDER BY COUNT(c) DESC")
-	Page<Post> findByBoardIdOrderByCommentsCountDesc(@Param("boardId") Long boardId, Pageable pageable);
-
+    @Query("SELECT p FROM Post p LEFT JOIN p.postComments c WHERE p.board.id = :boardId GROUP BY p.id ORDER BY COUNT(c) DESC")
+    Page<Post> findByBoardIdOrderByCommentsCountDesc(@Param("boardId") Long boardId, Pageable pageable);
 }
