@@ -41,7 +41,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 	// WebSocket 메시지 발송을 위한 템플릿
 	private final SimpMessagingTemplate messagingTemplate;
 
-	private final String MEDIA_URL = "https://seoulfest.s3.amazonaws.com/";
+	private final String MEDIA_URL = "https://gyeonggifesta.s3.ap-northeast-2.amazonaws.com/";
 
 	@Override
 	@Transactional
