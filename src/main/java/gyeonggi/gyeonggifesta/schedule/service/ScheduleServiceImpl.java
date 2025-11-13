@@ -115,13 +115,8 @@ public class ScheduleServiceImpl implements ScheduleService {
 		scheduleRepository.delete(schedule);
 	}
 
-	// ========== 동행 채팅방 자동 일정 생성 (트랜잭션 분리용, AFTER_COMMIT에서 호출) ==========
+	// ========== 동행 채팅방 자동 일정 생성 (AFTER_COMMIT에서 호출) ==========
 
-	/**
-	 * 동행 채팅방 자동 일정 생성
-	 * - 이 메서드는 "이미 채팅방이 커밋된 이후" 에 호출된다고 가정한다.
-	 * - 중복/과거 날짜 방어 후 일정 한 건 생성.
-	 */
 	@Override
 	@Transactional
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {

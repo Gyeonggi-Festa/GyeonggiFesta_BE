@@ -22,8 +22,14 @@ public class CompanionScheduleEventListener {
 	private final ChatRoomRepository chatRoomRepository;
 	private final ScheduleService scheduleService;
 
+	/**
+	 * 동행방 생성 트랜잭션이 "성공적으로 커밋된 이후"에만 실행
+	 */
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleCompanionChatRoomCreated(CompanionChatRoomCreatedEvent event) {
+
+		log.info("[동행 일정] 이벤트 수신 - memberId={}, chatRoomId={}, eventDate={}",
+				event.getMemberId(), event.getChatRoomId(), event.getEventDate());
 
 		// 혹시라도 null 이 들어온 경우 방어
 		if (event.getChatRoomId() == null || event.getMemberId() == null) {
@@ -44,11 +50,17 @@ public class CompanionScheduleEventListener {
 			Member member = memberOpt.get();
 			ChatRoom chatRoom = chatRoomOpt.get();
 
+			log.info("[동행 일정] 생성 호출 - memberId={}, chatRoomId={}, eventDate={}",
+					member.getId(), chatRoom.getId(), event.getEventDate());
+
 			scheduleService.createScheduleForCompanion(
 					member,
 					chatRoom,
 					event.getEventDate()
 			);
+
+			log.info("[동행 일정] 생성 완료 - memberId={}, chatRoomId={}, eventDate={}",
+					member.getId(), chatRoom.getId(), event.getEventDate());
 
 		} catch (Exception e) {
 			log.error("[동행 일정] 자동 생성 실패 (채팅방은 이미 생성됨). event={}", event, e);
