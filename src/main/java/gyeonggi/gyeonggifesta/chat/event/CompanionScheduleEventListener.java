@@ -13,9 +13,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.Optional;
 
-/**
- * 동행 채팅방 생성 이후 일정 자동 생성 리스너
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -25,11 +22,14 @@ public class CompanionScheduleEventListener {
 	private final ChatRoomRepository chatRoomRepository;
 	private final ScheduleService scheduleService;
 
-	/**
-	 * 동행 채팅방 트랜잭션이 "성공적으로 커밋된 후"에 호출된다.
-	 */
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void handleCompanionChatRoomCreated(CompanionChatRoomCreatedEvent event) {
+
+		// 혹시라도 null 이 들어온 경우 방어
+		if (event.getChatRoomId() == null || event.getMemberId() == null) {
+			log.warn("[동행 일정] 생성 스킵 - null ID 포함 event={}", event);
+			return;
+		}
 
 		try {
 			Optional<Member> memberOpt = memberRepository.findById(event.getMemberId());
@@ -51,7 +51,6 @@ public class CompanionScheduleEventListener {
 			);
 
 		} catch (Exception e) {
-			// 여기서 예외가 나더라도 채팅방 트랜잭션은 이미 커밋된 상태
 			log.error("[동행 일정] 자동 생성 실패 (채팅방은 이미 생성됨). event={}", event, e);
 		}
 	}
