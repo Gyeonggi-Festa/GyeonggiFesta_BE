@@ -29,7 +29,7 @@ public class MemberServiceImpl implements MemberService{
 	/**
 	 * 유저 피처 입력
 	 *
-	 * @param userDetails 로그인된 유저
+	 * @param userDetails 로그인된 유저W
 	 * @param request     유저 정보
 	 * @return AT, RT
 	 */

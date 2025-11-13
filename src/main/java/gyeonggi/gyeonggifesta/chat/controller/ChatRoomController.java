@@ -5,9 +5,12 @@ import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.CreateChatRoomReq;
 import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.InviteChatRoomReq;
 import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.KickChatRoomReq;
 import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.UpdateChatRoomReq;
+import gyeonggi.gyeonggifesta.chat.dto.response.CompanionChatRoomRes;
 import gyeonggi.gyeonggifesta.chat.dto.response.ChatRoomRes;
 import gyeonggi.gyeonggifesta.chat.dto.response.MyChatRoomRes;
 import gyeonggi.gyeonggifesta.chat.service.chatroom.ChatRoomService;
+import gyeonggi.gyeonggifesta.chat.service.chatroom.CompanionChatRoomService;
+import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.CreateCompanionChatRoomReq;
 import gyeonggi.gyeonggifesta.util.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class ChatRoomController {
 
 	private final ChatRoomService chatRoomService;
+	private final CompanionChatRoomService companionChatRoomService;
 
 	/**
 	 * 채팅방 생성
@@ -29,6 +33,26 @@ public class ChatRoomController {
 	@PostMapping("/chatrooms")
 	public ResponseEntity<Response<Void>> createChatRoom(@RequestBody CreateChatRoomReq request) {
 		chatRoomService.createChatRoom(request);
+		return Response.ok().toResponseEntity();
+	}
+
+	/**
+	 * 동행찾기 전용 채팅방 생성
+	 *
+	 * POST /api/auth/user/companion-chatrooms
+	 * {
+	 *   "name": "채팅방 테스트222~~~~~~~",
+	 *   "type": "GROUP",          // 보내도 무시됨
+	 *   "information": "설명글입니다~~~~~",
+	 *   "category": "연극",
+	 *   "eventDate": "2025-11-30"
+	 * }
+	 */
+	@PostMapping("/companion-chatrooms")
+	public ResponseEntity<Response<Void>> createCompanionChatRoom(
+			@RequestBody CreateCompanionChatRoomReq request) {
+
+		companionChatRoomService.createCompanionChatRoom(request);
 		return Response.ok().toResponseEntity();
 	}
 
@@ -136,6 +160,21 @@ public class ChatRoomController {
 		return Response.ok(categoryRooms).toResponseEntity();
 	}
 
+	/**
+	 * 동행찾기 채팅방 목록 조회
+	 *
+	 * GET /api/auth/user/companion-chatrooms?page=1&size=10&category=연극
+	 */
+	@GetMapping("/companion-chatrooms")
+	public ResponseEntity<Response<Page<CompanionChatRoomRes>>> listCompanionChatRooms(
+			@RequestParam(defaultValue = "1", required = false) int page,
+			@RequestParam(defaultValue = "10", required = false) int size,
+			@RequestParam(required = false) String category) {
 
+		Page<CompanionChatRoomRes> rooms =
+				companionChatRoomService.listCompanionChatRooms(page, size, category);
+
+		return Response.ok(rooms).toResponseEntity();
+	}
 
 }
