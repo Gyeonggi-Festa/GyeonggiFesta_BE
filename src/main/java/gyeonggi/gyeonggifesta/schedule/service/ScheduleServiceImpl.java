@@ -68,10 +68,10 @@ public class ScheduleServiceImpl implements ScheduleService {
 				.memo(request.getMemo())
 				.build();
 
-		scheduleRepository.save(schedule);
+		Schedule saved = scheduleRepository.saveAndFlush(schedule);
 
 		log.info("[수동 일정] 생성 성공 - memberId={}, scheduleId={}, eventDate={}",
-				currentMember.getId(), schedule.getId(), schedule.getEventDate());
+				currentMember.getId(), saved.getId(), saved.getEventDate());
 	}
 
 	// ========== 내 일정 조회 ==========
@@ -169,18 +169,17 @@ public class ScheduleServiceImpl implements ScheduleService {
 				.memo(null)
 				.build();
 
-		scheduleRepository.save(schedule);
+		Schedule saved = scheduleRepository.saveAndFlush(schedule);
 
 		// 디버깅 정보 강화
 		log.info("[동행 일정 생성] SUCCESS - scheduleId={}, memberId={}, chatRoomId={}, eventDate={}, title={}",
-				schedule.getId(),
-				schedule.getMember().getId(),
-				schedule.getChatRoom().getId(),
-				schedule.getEventDate(),
-				schedule.getTitle()
+				saved.getId(),
+				saved.getMember().getId(),
+				saved.getChatRoom().getId(),
+				saved.getEventDate(),
+				saved.getTitle()
 		);
 	}
-
 
 	private ScheduleRes toScheduleRes(Schedule schedule) {
 		return ScheduleRes.builder()
