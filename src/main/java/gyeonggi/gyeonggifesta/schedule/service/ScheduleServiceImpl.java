@@ -1,0 +1,157 @@
+package gyeonggi.gyeonggifesta.schedule.service;
+
+import gyeonggi.gyeonggifesta.chat.entity.ChatRoom;
+import gyeonggi.gyeonggifesta.chat.repository.ChatRoomRepository;
+import gyeonggi.gyeonggifesta.exception.BusinessException;
+import gyeonggi.gyeonggifesta.member.entity.Member;
+import gyeonggi.gyeonggifesta.schedule.dto.request.CreateScheduleReq;
+import gyeonggi.gyeonggifesta.schedule.dto.request.UpdateScheduleReq;
+import gyeonggi.gyeonggifesta.schedule.dto.response.ScheduleRes;
+import gyeonggi.gyeonggifesta.schedule.entity.Schedule;
+import gyeonggi.gyeonggifesta.schedule.exception.ScheduleErrorCode;
+import gyeonggi.gyeonggifesta.schedule.repository.ScheduleRepository;
+import gyeonggi.gyeonggifesta.util.response.error_code.GeneralErrorCode;
+import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ScheduleServiceImpl implements ScheduleService {
+
+	private final ScheduleRepository scheduleRepository;
+	private final ChatRoomRepository chatRoomRepository;
+	private final SecurityUtil securityUtil;
+
+	@Override
+	@Transactional
+	public void createSchedule(CreateScheduleReq request) {
+		Member currentMember = securityUtil.getCurrentMember();
+
+		if (request.getTitle() == null || request.getTitle().isBlank()) {
+			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
+		}
+		if (request.getEventDate() == null) {
+			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
+		}
+
+		ChatRoom chatRoom = null;
+		if (request.getChatRoomId() != null) {
+			chatRoom = chatRoomRepository.findById(request.getChatRoomId())
+					.orElseThrow(() -> new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE));
+		}
+
+		Schedule schedule = Schedule.builder()
+				.member(currentMember)
+				.chatRoom(chatRoom)
+				.title(request.getTitle())
+				.eventDate(request.getEventDate())
+				.memo(request.getMemo())
+				.build();
+
+		scheduleRepository.save(schedule);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Page<ScheduleRes> getMySchedules(int page, int size) {
+		Member currentMember = securityUtil.getCurrentMember();
+
+		PageRequest pageable = PageRequest.of(
+				page - 1,
+				size,
+				Sort.by(Sort.Direction.ASC, "eventDate")
+						.and(Sort.by(Sort.Direction.DESC, "id"))
+		);
+
+		Page<Schedule> schedulePage =
+				scheduleRepository.findByMemberOrderByEventDateAscIdDesc(currentMember, pageable);
+
+		return schedulePage.map(this::toScheduleRes);
+	}
+
+	@Override
+	@Transactional
+	public void updateSchedule(Long scheduleId, UpdateScheduleReq request) {
+		Member currentMember = securityUtil.getCurrentMember();
+
+		Schedule schedule = scheduleRepository.findByIdAndMember(scheduleId, currentMember)
+				.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
+
+		if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
+			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
+		}
+
+		schedule.update(request.getTitle(), request.getEventDate(), request.getMemo());
+	}
+
+	@Override
+	@Transactional
+	public void deleteSchedule(Long scheduleId) {
+		Member currentMember = securityUtil.getCurrentMember();
+
+		Schedule schedule = scheduleRepository.findByIdAndMember(scheduleId, currentMember)
+				.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
+
+		scheduleRepository.delete(schedule);
+	}
+
+	/**
+	 * 동행 채팅방 생성/참여 시 자동 일정 등록
+	 * - 별도 트랜잭션(REQUIRES_NEW)으로 실행해서
+	 *   실패해도 채팅방 생성/참여 트랜잭션에 영향이 가지 않도록 함
+	 */
+	@Override
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
+		try {
+			if (eventDate == null) {
+				return;
+			}
+
+			// 이미 같은 날짜/채팅방으로 일정이 있으면 아무 것도 안 함
+			boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
+					member, chatRoom, eventDate
+			);
+
+			if (exists) {
+				return;
+			}
+
+			Schedule schedule = Schedule.builder()
+					.member(member)
+					.chatRoom(chatRoom)
+					.title(chatRoom.getName())
+					.eventDate(eventDate)
+					.memo(null)
+					.build();
+
+			scheduleRepository.save(schedule);
+		} catch (Exception e) {
+			// 동행 일정 생성 실패가 채팅방 생성/참여를 깨지 않도록 보호
+			log.error("동행 일정 자동 생성 실패 - memberId={}, chatRoomId={}, eventDate={}",
+					member.getId(), chatRoom.getId(), eventDate, e);
+		}
+	}
+
+	private ScheduleRes toScheduleRes(Schedule schedule) {
+		Long chatRoomId = schedule.getChatRoom() != null ? schedule.getChatRoom().getId() : null;
+
+		return ScheduleRes.builder()
+				.scheduleId(schedule.getId())
+				.title(schedule.getTitle())
+				.eventDate(schedule.getEventDate())
+				.memo(schedule.getMemo())
+				.chatRoomId(chatRoomId)
+				.build();
+	}
+}
