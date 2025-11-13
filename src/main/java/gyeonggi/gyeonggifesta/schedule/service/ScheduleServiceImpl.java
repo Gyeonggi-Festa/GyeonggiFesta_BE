@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -31,6 +32,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 	private final ChatRoomRepository chatRoomRepository;
 	private final SecurityUtil securityUtil;
 
+	// ====== 수동 일정 생성 (기존과 동일) ======
 	@Override
 	@Transactional
 	public void createSchedule(CreateScheduleReq request) {
@@ -114,19 +116,21 @@ public class ScheduleServiceImpl implements ScheduleService {
 	}
 
 	/**
-	 * 동행 채팅방 자동 일정 생성 – 최종 확정 버전
-	 * - REQUIRES_NEW 제거 (지연/타임아웃 방지)
-	 * - save → flush() 후 즉시 예외 감지
-	 * - 모든 예외 try/catch → 채팅방 생성에는 절대 영향 없음
+	 * 동행 채팅방 자동 일정 생성 – 최종 버전
+	 *
+	 * - REQUIRES_NEW: 채팅방 생성 트랜잭션과 완전히 분리
+	 * - 내부에서 save + flush 를 try/catch 로 감싸서
+	 *   제약조건/락 오류 포함 모든 예외를 이 메서드 안에서 소화
+	 * - 따라서 일정 생성 실패해도 채팅방 생성/참여는 100% 커밋된다.
 	 */
 	@Override
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
 
 		try {
-			// --- 무효 파라미터 방어 ---
+			// --- 1) 파라미터 방어 ---
 			if (member == null || chatRoom == null || eventDate == null) {
-				log.warn("동행 일정 생성 스킵 (null 파라미터) member={}, chatRoom={}, eventDate={}",
+				log.warn("[동행 일정] 생성 스킵 - null 파라미터 member={}, chatRoom={}, eventDate={}",
 						member != null ? member.getId() : null,
 						chatRoom != null ? chatRoom.getId() : null,
 						eventDate);
@@ -134,37 +138,40 @@ public class ScheduleServiceImpl implements ScheduleService {
 			}
 
 			if (eventDate.isBefore(LocalDate.now())) {
-				log.warn("동행 일정 생성 스킵 (과거 날짜) eventDate={}", eventDate);
+				log.warn("[동행 일정] 생성 스킵 - 과거 날짜 eventDate={}", eventDate);
 				return;
 			}
 
+			// --- 2) 중복 방지 ---
 			boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
 					member, chatRoom, eventDate);
 
 			if (exists) {
-				log.info("동행 일정 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
+				log.info("[동행 일정] 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
 						member.getId(), chatRoom.getId(), eventDate);
 				return;
 			}
 
-			// --- 자동 생성 ---
+			// --- 3) 일정 생성 ---
 			Schedule schedule = Schedule.builder()
 					.member(member)
 					.chatRoom(chatRoom)
-					.title(chatRoom.getName())  // 방 제목 그대로 일정 제목으로
+					.title(chatRoom.getName())  // 방 이름을 일정 제목으로 사용
 					.eventDate(eventDate)
 					.memo(null)
 					.build();
 
 			scheduleRepository.save(schedule);
-			scheduleRepository.flush(); // 커밋 단계가 아니라 여기서 바로 제약조건 오류 잡힘
+			// 커밋 시점이 아니라 여기서 insert/제약조건/락 에러를 바로 감지
+			scheduleRepository.flush();
 
-			log.info("동행 일정 자동 생성 성공 - memberId={}, chatRoomId={}, eventDate={}",
+			log.info("[동행 일정] 자동 생성 성공 - memberId={}, chatRoomId={}, eventDate={}",
 					member.getId(), chatRoom.getId(), eventDate);
 
 		} catch (Exception e) {
-			// 어떤 오류가 나더라도 채팅방 생성 흐름에는 영향 X
-			log.error("동행 일정 자동 생성 실패(채팅방 영향 없음) memberId={}, chatRoomId={}, eventDate={}",
+			// 여기서 어떤 예외가 나더라도, 이 REQUIRES_NEW 트랜잭션만 롤백되고
+			//  채팅방 생성 트랜잭션은 절대 건드리지 않는다.
+			log.error("[동행 일정] 자동 생성 실패(채팅방에는 영향 없음) memberId={}, chatRoomId={}, eventDate={}",
 					member != null ? member.getId() : null,
 					chatRoom != null ? chatRoom.getId() : null,
 					eventDate, e);
