@@ -15,6 +15,7 @@ import gyeonggi.gyeonggifesta.schedule.service.ScheduleService;
 import gyeonggi.gyeonggifesta.util.response.error_code.GeneralErrorCode;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CompanionChatRoomService {
@@ -36,9 +38,6 @@ public class CompanionChatRoomService {
 
 	/**
 	 * 동행찾기 채팅방 생성
-	 * - 내부적으로는 GROUP 타입 ChatRoom을 하나 만들고
-	 * - CompanionChatRoom에 eventDate를 연결해서 별도로 관리
-	 * - 방장에 대해서는 바로 일정도 자동 생성
 	 */
 	@Transactional
 	public void createCompanionChatRoom(CreateCompanionChatRoomReq request) {
@@ -57,7 +56,6 @@ public class CompanionChatRoomService {
 			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
 		}
 
-		// 과거 날짜 방지
 		LocalDate today = LocalDate.now();
 		if (request.getEventDate().isBefore(today)) {
 			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
@@ -77,8 +75,8 @@ public class CompanionChatRoomService {
 		chatRoom = chatRoomRepository.save(chatRoom);
 
 		// 2) 방장을 멤버로 등록
-		ChatRoomMember ownerMember =
-				chatRoomMembershipService.createChatRoomMember(chatRoom, currentMember, ChatRole.OWNER);
+		ChatRoomMember ownerMember = chatRoomMembershipService
+				.createChatRoomMember(chatRoom, currentMember, ChatRole.OWNER);
 		chatRoom.addChatRoomMember(ownerMember);
 
 		// 3) 동행 메타 정보 저장
@@ -89,16 +87,17 @@ public class CompanionChatRoomService {
 
 		companionChatRoomRepository.save(companionChatRoom);
 
-		// 4) 방장 일정 자동 등록 (예외는 내부에서 처리)
-		scheduleService.createScheduleForCompanion(
-				currentMember, chatRoom, request.getEventDate()
-		);
+		// 4) 일정 자동 생성 (실패해도 채팅방 생성은 유지)
+		try {
+			scheduleService.createScheduleForCompanion(currentMember, chatRoom, request.getEventDate());
+		} catch (Exception e) {
+			log.error("동행 일정 자동 생성 실패(채팅방은 정상 생성됨) - memberId={}, chatRoomId={}, eventDate={}",
+					currentMember.getId(), chatRoom.getId(), request.getEventDate(), e);
+		}
 	}
 
 	/**
 	 * 동행찾기 채팅방 목록 조회
-	 * - category 필터 옵션
-	 * - eventDate 기준 오름차순 정렬
 	 */
 	@Transactional(readOnly = true)
 	public Page<CompanionChatRoomRes> listCompanionChatRooms(int page, int size, String category) {
