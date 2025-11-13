@@ -106,41 +106,34 @@ public class ScheduleServiceImpl implements ScheduleService {
 	}
 
 	/**
-	 * 동행 채팅방 생성/참여 시 자동 일정 등록
-	 * - 별도 트랜잭션(REQUIRES_NEW)으로 실행해서
-	 *   실패해도 채팅방 생성/참여 트랜잭션에 영향이 가지 않도록 함
+	 * 동행 채팅방용 일정 자동 등록
+	 * - 별도 트랜잭션(REQUIRES_NEW)으로 실행
 	 */
 	@Override
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
-		try {
-			if (eventDate == null) {
-				return;
-			}
-
-			// 이미 같은 날짜/채팅방으로 일정이 있으면 아무 것도 안 함
-			boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
-					member, chatRoom, eventDate
-			);
-
-			if (exists) {
-				return;
-			}
-
-			Schedule schedule = Schedule.builder()
-					.member(member)
-					.chatRoom(chatRoom)
-					.title(chatRoom.getName())
-					.eventDate(eventDate)
-					.memo(null)
-					.build();
-
-			scheduleRepository.save(schedule);
-		} catch (Exception e) {
-			// 동행 일정 생성 실패가 채팅방 생성/참여를 깨지 않도록 보호
-			log.error("동행 일정 자동 생성 실패 - memberId={}, chatRoomId={}, eventDate={}",
-					member.getId(), chatRoom.getId(), eventDate, e);
+		if (eventDate == null) {
+			return;
 		}
+
+		// 이미 같은 날짜/채팅방으로 일정이 있으면 아무 것도 안 함
+		boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
+				member, chatRoom, eventDate
+		);
+
+		if (exists) {
+			return;
+		}
+
+		Schedule schedule = Schedule.builder()
+				.member(member)
+				.chatRoom(chatRoom)
+				.title(chatRoom.getName())
+				.eventDate(eventDate)
+				.memo(null)
+				.build();
+
+		scheduleRepository.save(schedule);
 	}
 
 	private ScheduleRes toScheduleRes(Schedule schedule) {
