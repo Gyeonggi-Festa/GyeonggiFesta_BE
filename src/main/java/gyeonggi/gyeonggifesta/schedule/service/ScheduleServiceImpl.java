@@ -14,10 +14,12 @@ import gyeonggi.gyeonggifesta.util.response.error_code.GeneralErrorCode;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -68,7 +70,8 @@ public class ScheduleServiceImpl implements ScheduleService {
 				.memo(request.getMemo())
 				.build();
 
-		Schedule saved = scheduleRepository.saveAndFlush(schedule);
+		// 수동 등록은 그냥 save만 써도 됨 (id 필요하면 save 후 사용)
+		Schedule saved = scheduleRepository.save(schedule);
 
 		log.info("[수동 일정] 생성 성공 - memberId={}, scheduleId={}, eventDate={}",
 				currentMember.getId(), saved.getId(), saved.getEventDate());
@@ -131,10 +134,10 @@ public class ScheduleServiceImpl implements ScheduleService {
 		log.info("[내 일정 삭제] memberId={}, scheduleId={}", currentMember.getId(), scheduleId);
 	}
 
-	// ========== 동행 채팅방 자동 일정 생성 (AFTER_COMMIT에서 호출) ==========
+	// ========== 동행 채팅방 자동 일정 생성 (채팅방 트랜잭션과 분리) ==========
 
 	@Override
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
 
 		// 파라미터 방어
@@ -151,33 +154,40 @@ public class ScheduleServiceImpl implements ScheduleService {
 			return;
 		}
 
-		boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
-				member, chatRoom, eventDate
-		);
+		try {
+			boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
+					member, chatRoom, eventDate
+			);
 
-		if (exists) {
-			log.info("[동행 일정] 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
-					member.getId(), chatRoom.getId(), eventDate);
-			return;
+			if (exists) {
+				log.info("[동행 일정] 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
+						member.getId(), chatRoom.getId(), eventDate);
+				return;
+			}
+
+			Schedule schedule = Schedule.builder()
+					.member(member)
+					.chatRoom(chatRoom)
+					.title(chatRoom.getName())
+					.eventDate(eventDate)
+					.memo(null)
+					.build();
+
+			Schedule saved = scheduleRepository.save(schedule);
+
+			log.info("[동행 일정 생성] SUCCESS - scheduleId={}, memberId={}, chatRoomId={}, eventDate={}, title={}",
+					saved.getId(),
+					saved.getMember().getId(),
+					saved.getChatRoom().getId(),
+					saved.getEventDate(),
+					saved.getTitle()
+			);
+
+		} catch (DataIntegrityViolationException e) {
+			// 유니크 제약조건 등으로 인한 race condition 방어
+			log.warn("[동행 일정] DB 제약 위반으로 인한 생성 스킵 - memberId={}, chatRoomId={}, eventDate={}",
+					member.getId(), chatRoom.getId(), eventDate, e);
 		}
-
-		Schedule schedule = Schedule.builder()
-				.member(member)
-				.chatRoom(chatRoom)
-				.title(chatRoom.getName())
-				.eventDate(eventDate)
-				.memo(null)
-				.build();
-
-		Schedule saved = scheduleRepository.save(schedule);
-
-		log.info("[동행 일정 생성] SUCCESS - scheduleId={}, memberId={}, chatRoomId={}, eventDate={}, title={}",
-				saved.getId(),
-				saved.getMember().getId(),
-				saved.getChatRoom().getId(),
-				saved.getEventDate(),
-				saved.getTitle()
-		);
 	}
 
 	private ScheduleRes toScheduleRes(Schedule schedule) {

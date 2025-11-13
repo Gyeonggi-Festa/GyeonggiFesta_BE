@@ -7,16 +7,15 @@ import gyeonggi.gyeonggifesta.chat.entity.ChatRoomMember;
 import gyeonggi.gyeonggifesta.chat.entity.CompanionChatRoom;
 import gyeonggi.gyeonggifesta.chat.enums.ChatRole;
 import gyeonggi.gyeonggifesta.chat.enums.ChatRoomType;
-import gyeonggi.gyeonggifesta.chat.event.CompanionChatRoomCreatedEvent;
 import gyeonggi.gyeonggifesta.chat.repository.ChatRoomRepository;
 import gyeonggi.gyeonggifesta.chat.repository.CompanionChatRoomRepository;
 import gyeonggi.gyeonggifesta.exception.BusinessException;
 import gyeonggi.gyeonggifesta.member.entity.Member;
+import gyeonggi.gyeonggifesta.schedule.service.ScheduleService;
 import gyeonggi.gyeonggifesta.util.response.error_code.GeneralErrorCode;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -35,7 +34,7 @@ public class CompanionChatRoomService {
 	private final ChatRoomRepository chatRoomRepository;
 	private final ChatRoomMembershipService chatRoomMembershipService;
 	private final CompanionChatRoomRepository companionChatRoomRepository;
-	private final ApplicationEventPublisher eventPublisher;
+	private final ScheduleService scheduleService;   // 🔥 일정 서비스 직접 사용
 
 	/**
 	 * 동행찾기 채팅방 생성
@@ -74,9 +73,8 @@ public class CompanionChatRoomService {
 				.owner(currentMember)
 				.build();
 
-		// IDENTITY 전략이라도 확실하게 ID를 채우기 위해 save 후 flush
 		chatRoom = chatRoomRepository.save(chatRoom);
-		chatRoomRepository.flush();   // 여기까지 오면 chatRoom.getId() 는 null 아님
+		chatRoomRepository.flush();   // ID 채우기용
 
 		// 3) 방장 가입
 		ChatRoomMember ownerMember =
@@ -91,17 +89,17 @@ public class CompanionChatRoomService {
 
 		companionChatRoomRepository.save(companionChatRoom);
 
-		// 5) AFTER_COMMIT에서 일정 생성하도록 이벤트 발행
-		CompanionChatRoomCreatedEvent event = new CompanionChatRoomCreatedEvent(
-				currentMember.getId(),
-				chatRoom.getId(),
-				request.getEventDate()
-		);
-
-		log.info("[동행방 생성] 이벤트 발행 시작 - memberId={}, chatRoomId={}, eventDate={}",
-				event.getMemberId(), event.getChatRoomId(), event.getEventDate());
-
-		eventPublisher.publishEvent(event);
+		// 5) 동행 일정 자동 생성 (별도 트랜잭션, 실패해도 채팅방은 유지)
+		try {
+			scheduleService.createScheduleForCompanion(
+					currentMember,
+					chatRoom,
+					request.getEventDate()
+			);
+		} catch (Exception e) {
+			log.error("[동행 일정] 자동 생성 실패 - memberId={}, chatRoomId={}, eventDate={}",
+					currentMember.getId(), chatRoom.getId(), request.getEventDate(), e);
+		}
 
 		log.info("[동행방 생성] 완료 - chatRoomId={}, ownerId={}, eventDate={}",
 				chatRoom.getId(), currentMember.getId(), request.getEventDate());
