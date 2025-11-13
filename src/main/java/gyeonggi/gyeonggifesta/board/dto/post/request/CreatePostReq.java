@@ -17,17 +17,18 @@ import java.util.List;
 @AllArgsConstructor
 public class CreatePostReq {
 
-    private Long eventId;
-    private String title;
-    private String content;
-    private List<String> keyList;
+        private Long boardId;
+        private Long eventId;
+        private String title;
+        private String content;
+        private List<String> keyList;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private List<LocalDate> visitDates;
+        @JsonFormat(pattern = "yyyy-MM-dd")
+        private List<LocalDate> visitDates;
 
-    private Integer recruitPeople;
-    private Integer recruitPeriod;
-    private GenderPreference genderPreference;
-    private AgeRange ageRange;
+        private Integer recruitPeople;
+        private Integer recruitPeriod;
+        private GenderPreference genderPreference;
+        private AgeRange ageRange;
 
 }

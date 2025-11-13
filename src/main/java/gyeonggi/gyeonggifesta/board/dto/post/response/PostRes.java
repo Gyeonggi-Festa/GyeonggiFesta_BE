@@ -17,29 +17,29 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostRes {
-    private Long postId;
-    private Long eventId;
-    private String eventTitle;
-    private String eventMainImage;
+        private Long postId;
+        private Long eventId;
+        private String eventTitle;
+        private String eventMainImage;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private LocalDate eventStartDate;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+        private LocalDate eventStartDate;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private LocalDate eventEndDate;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+        private LocalDate eventEndDate;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private List<LocalDate> visitDates;
+        @JsonFormat(pattern = "yyyy-MM-dd")
+        private List<LocalDate> visitDates;
 
-    private Integer recruitPeople;
-    private Integer recruitPeriod;
-    private GenderPreference genderPreference;
-    private AgeRange ageRange;
-    private String title;
-    private String content;
-    private String writer;
-    private long viewCount;
-    private long likes;
-    private long comments;
-    private LocalDateTime updatedAt;
+        private Integer recruitPeople;
+        private Integer recruitPeriod;
+        private GenderPreference genderPreference;
+        private AgeRange ageRange;
+        private String title;
+        private String content;
+        private String writer;
+        private long viewCount;
+        private long likes;
+        private long comments;
+        private LocalDateTime updatedAt;
 }
