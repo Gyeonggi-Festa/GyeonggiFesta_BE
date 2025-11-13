@@ -180,7 +180,9 @@ public class PostServiceImpl implements PostService {
                         post.setAgeRange(request.getAgeRange());
                 }
 
-                postMediaService.updatePostMedia(post, request.getKeyList());
+                if (request.getKeyList() != null) {
+                        postMediaService.updatePostMedia(post, request.getKeyList());
+                }
 
         }
 
