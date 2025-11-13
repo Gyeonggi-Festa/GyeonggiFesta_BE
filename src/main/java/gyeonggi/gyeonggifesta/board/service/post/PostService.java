@@ -24,8 +24,8 @@ public interface PostService {
 	// 게시글 수정
 	void updatePost(Long postId, UpdatePostReq request);
 
-        // 게시글 삭제
-        void deletePost(Long postId);
+	// 게시글 삭제
+	void deletePost(Long postId);
 
-        List<PostEventOptionRes> getAvailableEvents(Status status);
+	List<PostEventOptionRes> getAvailableEvents(Status status);
 }
