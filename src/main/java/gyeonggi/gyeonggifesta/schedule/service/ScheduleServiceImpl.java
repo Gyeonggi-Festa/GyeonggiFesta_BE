@@ -43,11 +43,20 @@ public class ScheduleServiceImpl implements ScheduleService {
 		if (request.getEventDate() == null) {
 			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
 		}
+		if (request.getEventDate().isBefore(LocalDate.now())) {
+			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
+		}
 
 		ChatRoom chatRoom = null;
 		if (request.getChatRoomId() != null) {
 			chatRoom = chatRoomRepository.findById(request.getChatRoomId())
 					.orElseThrow(() -> new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE));
+		}
+
+		if (chatRoom != null &&
+				scheduleRepository.existsByMemberAndChatRoomAndEventDate(
+						currentMember, chatRoom, request.getEventDate())) {
+			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
 		}
 
 		Schedule schedule = Schedule.builder()
@@ -107,33 +116,49 @@ public class ScheduleServiceImpl implements ScheduleService {
 
 	/**
 	 * 동행 채팅방용 일정 자동 등록
-	 * - 별도 트랜잭션(REQUIRES_NEW)으로 실행
+	 * - REQUIRES_NEW: 채팅방 생성/참여 트랜잭션과 분리
+	 * - 여기서는 예외를 catch 하지 않는다 → 커밋 에러 포함 모든 예외는 호출자(CompanionChatRoomService)에서 처리
 	 */
 	@Override
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
-		if (eventDate == null) {
+		// 방어 로직: null / 과거 날짜면 그냥 스킵
+		if (member == null || chatRoom == null || eventDate == null) {
+			log.warn("동행 일정 자동 생성 스킵 - member/chatRoom/eventDate 중 null: member={}, chatRoom={}, eventDate={}",
+					member != null ? member.getId() : null,
+					chatRoom != null ? chatRoom.getId() : null,
+					eventDate);
 			return;
 		}
 
-		// 이미 같은 날짜/채팅방으로 일정이 있으면 아무 것도 안 함
+		if (eventDate.isBefore(LocalDate.now())) {
+			log.warn("동행 일정 자동 생성 스킵 - 과거 날짜 eventDate={}", eventDate);
+			return;
+		}
+
 		boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
 				member, chatRoom, eventDate
 		);
 
 		if (exists) {
+			log.info("동행 일정 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
+					member.getId(), chatRoom.getId(), eventDate);
 			return;
 		}
 
+		// 채팅방 이름을 그대로 일정 title 로 사용
 		Schedule schedule = Schedule.builder()
 				.member(member)
 				.chatRoom(chatRoom)
-				.title(chatRoom.getName())
-				.eventDate(eventDate)
+				.title(chatRoom.getName())   // 예: "청춘 페스티벌 같이 갈 사람~"
+				.eventDate(eventDate)        // 예: 2025-11-30
 				.memo(null)
 				.build();
 
 		scheduleRepository.save(schedule);
+
+		log.info("동행 일정 자동 생성 성공 - memberId={}, chatRoomId={}, eventDate={}",
+				member.getId(), chatRoom.getId(), eventDate);
 	}
 
 	private ScheduleRes toScheduleRes(Schedule schedule) {
