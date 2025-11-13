@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -46,16 +47,16 @@ public class ScheduleServiceImpl implements ScheduleService {
 		ChatRoom chatRoom = null;
 		if (request.getChatRoomId() != null) {
 			chatRoom = chatRoomRepository.findById(request.getChatRoomId())
-				.orElseThrow(() -> new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE));
+					.orElseThrow(() -> new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE));
 		}
 
 		Schedule schedule = Schedule.builder()
-			.member(currentMember)
-			.chatRoom(chatRoom)
-			.title(request.getTitle())
-			.eventDate(request.getEventDate())
-			.memo(request.getMemo())
-			.build();
+				.member(currentMember)
+				.chatRoom(chatRoom)
+				.title(request.getTitle())
+				.eventDate(request.getEventDate())
+				.memo(request.getMemo())
+				.build();
 
 		scheduleRepository.save(schedule);
 	}
@@ -66,14 +67,14 @@ public class ScheduleServiceImpl implements ScheduleService {
 		Member currentMember = securityUtil.getCurrentMember();
 
 		PageRequest pageable = PageRequest.of(
-			page - 1,
-			size,
-			Sort.by(Sort.Direction.ASC, "eventDate")
-				.and(Sort.by(Sort.Direction.DESC, "id"))
+				page - 1,
+				size,
+				Sort.by(Sort.Direction.ASC, "eventDate")
+						.and(Sort.by(Sort.Direction.DESC, "id"))
 		);
 
 		Page<Schedule> schedulePage =
-			scheduleRepository.findByMemberOrderByEventDateAscIdDesc(currentMember, pageable);
+				scheduleRepository.findByMemberOrderByEventDateAscIdDesc(currentMember, pageable);
 
 		return schedulePage.map(this::toScheduleRes);
 	}
@@ -84,7 +85,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 		Member currentMember = securityUtil.getCurrentMember();
 
 		Schedule schedule = scheduleRepository.findByIdAndMember(scheduleId, currentMember)
-			.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
+				.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
 
 		if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
 			throw new BusinessException(GeneralErrorCode.INVALID_INPUT_VALUE);
@@ -99,13 +100,18 @@ public class ScheduleServiceImpl implements ScheduleService {
 		Member currentMember = securityUtil.getCurrentMember();
 
 		Schedule schedule = scheduleRepository.findByIdAndMember(scheduleId, currentMember)
-			.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
+				.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
 
 		scheduleRepository.delete(schedule);
 	}
 
+	/**
+	 * 동행 채팅방 생성/참여 시 자동 일정 등록
+	 * - 별도 트랜잭션(REQUIRES_NEW)으로 실행해서
+	 *   실패해도 채팅방 생성/참여 트랜잭션에 영향이 가지 않도록 함
+	 */
 	@Override
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
 		try {
 			if (eventDate == null) {
@@ -114,7 +120,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
 			// 이미 같은 날짜/채팅방으로 일정이 있으면 아무 것도 안 함
 			boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
-				member, chatRoom, eventDate
+					member, chatRoom, eventDate
 			);
 
 			if (exists) {
@@ -122,18 +128,18 @@ public class ScheduleServiceImpl implements ScheduleService {
 			}
 
 			Schedule schedule = Schedule.builder()
-				.member(member)
-				.chatRoom(chatRoom)
-				.title(chatRoom.getName())
-				.eventDate(eventDate)
-				.memo(null)
-				.build();
+					.member(member)
+					.chatRoom(chatRoom)
+					.title(chatRoom.getName())
+					.eventDate(eventDate)
+					.memo(null)
+					.build();
 
 			scheduleRepository.save(schedule);
 		} catch (Exception e) {
 			// 동행 일정 생성 실패가 채팅방 생성/참여를 깨지 않도록 보호
 			log.error("동행 일정 자동 생성 실패 - memberId={}, chatRoomId={}, eventDate={}",
-				member.getId(), chatRoom.getId(), eventDate, e);
+					member.getId(), chatRoom.getId(), eventDate, e);
 		}
 	}
 
@@ -141,11 +147,11 @@ public class ScheduleServiceImpl implements ScheduleService {
 		Long chatRoomId = schedule.getChatRoom() != null ? schedule.getChatRoom().getId() : null;
 
 		return ScheduleRes.builder()
-			.scheduleId(schedule.getId())
-			.title(schedule.getTitle())
-			.eventDate(schedule.getEventDate())
-			.memo(schedule.getMemo())
-			.chatRoomId(chatRoomId)
-			.build();
+				.scheduleId(schedule.getId())
+				.title(schedule.getTitle())
+				.eventDate(schedule.getEventDate())
+				.memo(schedule.getMemo())
+				.chatRoomId(chatRoomId)
+				.build();
 	}
 }
