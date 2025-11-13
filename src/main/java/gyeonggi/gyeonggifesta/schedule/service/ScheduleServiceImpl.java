@@ -169,9 +169,8 @@ public class ScheduleServiceImpl implements ScheduleService {
 				.memo(null)
 				.build();
 
-		Schedule saved = scheduleRepository.saveAndFlush(schedule);
+		Schedule saved = scheduleRepository.save(schedule);
 
-		// 디버깅 정보 강화
 		log.info("[동행 일정 생성] SUCCESS - scheduleId={}, memberId={}, chatRoomId={}, eventDate={}, title={}",
 				saved.getId(),
 				saved.getMember().getId(),
