@@ -155,19 +155,19 @@ public class S3ServiceImpl implements S3Service {
 	private String generatePostUniqueS3KeyWithExtension(String originalFileName, String extension) {
 		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 		String uniqueId = UUID.randomUUID().toString();
-		return "seoulfest/post/media/" + timestamp + "_" + uniqueId + extension;
+		return "gyeonggifesta/post/media/" + timestamp + "_" + uniqueId + extension;
 	}
 
 	private String generateChatUniqueS3KeyWithExtension(String originalFileName, String extension) {
 		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 		String uniqueId = UUID.randomUUID().toString();
-		return "seoulfest/chat/media/" + timestamp + "_" + uniqueId + extension;
+		return "gyeonggifesta/chat/media/" + timestamp + "_" + uniqueId + extension;
 	}
 
 	private String generateReviewUniqueS3KeyWithExtension(String originalFileName, String extension) {
 		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 		String uniqueId = UUID.randomUUID().toString();
-		return "seoulfest/review/media/" + timestamp + "_" + uniqueId + extension;
+		return "gyeonggifesta/review/media/" + timestamp + "_" + uniqueId + extension;
 	}
 
 	@Override
