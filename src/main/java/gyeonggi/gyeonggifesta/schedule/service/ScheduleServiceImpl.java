@@ -32,6 +32,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 	private final ChatRoomRepository chatRoomRepository;
 	private final SecurityUtil securityUtil;
 
+	// ====== 수동 일정 생성 (기존과 동일) ======
 	@Override
 	@Transactional
 	public void createSchedule(CreateScheduleReq request) {
@@ -115,61 +116,75 @@ public class ScheduleServiceImpl implements ScheduleService {
 	}
 
 	/**
-	 * 동행 채팅방용 일정 자동 등록
-	 * - REQUIRES_NEW: 채팅방 생성/참여 트랜잭션과 분리
-	 * - 여기서는 예외를 catch 하지 않는다 → 커밋 에러 포함 모든 예외는 호출자(CompanionChatRoomService)에서 처리
+	 * 동행 채팅방 자동 일정 생성 – 최종 버전
+	 *
+	 * - REQUIRES_NEW: 채팅방 생성 트랜잭션과 완전히 분리
+	 * - 내부에서 save + flush 를 try/catch 로 감싸서
+	 *   제약조건/락 오류 포함 모든 예외를 이 메서드 안에서 소화
+	 * - 따라서 일정 생성 실패해도 채팅방 생성/참여는 100% 커밋된다.
 	 */
 	@Override
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void createScheduleForCompanion(Member member, ChatRoom chatRoom, LocalDate eventDate) {
-		// 방어 로직: null / 과거 날짜면 그냥 스킵
-		if (member == null || chatRoom == null || eventDate == null) {
-			log.warn("동행 일정 자동 생성 스킵 - member/chatRoom/eventDate 중 null: member={}, chatRoom={}, eventDate={}",
+
+		try {
+			// --- 1) 파라미터 방어 ---
+			if (member == null || chatRoom == null || eventDate == null) {
+				log.warn("[동행 일정] 생성 스킵 - null 파라미터 member={}, chatRoom={}, eventDate={}",
+						member != null ? member.getId() : null,
+						chatRoom != null ? chatRoom.getId() : null,
+						eventDate);
+				return;
+			}
+
+			if (eventDate.isBefore(LocalDate.now())) {
+				log.warn("[동행 일정] 생성 스킵 - 과거 날짜 eventDate={}", eventDate);
+				return;
+			}
+
+			// --- 2) 중복 방지 ---
+			boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
+					member, chatRoom, eventDate);
+
+			if (exists) {
+				log.info("[동행 일정] 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
+						member.getId(), chatRoom.getId(), eventDate);
+				return;
+			}
+
+			// --- 3) 일정 생성 ---
+			Schedule schedule = Schedule.builder()
+					.member(member)
+					.chatRoom(chatRoom)
+					.title(chatRoom.getName())  // 방 이름을 일정 제목으로 사용
+					.eventDate(eventDate)
+					.memo(null)
+					.build();
+
+			scheduleRepository.save(schedule);
+			// 커밋 시점이 아니라 여기서 insert/제약조건/락 에러를 바로 감지
+			scheduleRepository.flush();
+
+			log.info("[동행 일정] 자동 생성 성공 - memberId={}, chatRoomId={}, eventDate={}",
+					member.getId(), chatRoom.getId(), eventDate);
+
+		} catch (Exception e) {
+			// 여기서 어떤 예외가 나더라도, 이 REQUIRES_NEW 트랜잭션만 롤백되고
+			//  채팅방 생성 트랜잭션은 절대 건드리지 않는다.
+			log.error("[동행 일정] 자동 생성 실패(채팅방에는 영향 없음) memberId={}, chatRoomId={}, eventDate={}",
 					member != null ? member.getId() : null,
 					chatRoom != null ? chatRoom.getId() : null,
-					eventDate);
-			return;
+					eventDate, e);
 		}
-
-		if (eventDate.isBefore(LocalDate.now())) {
-			log.warn("동행 일정 자동 생성 스킵 - 과거 날짜 eventDate={}", eventDate);
-			return;
-		}
-
-		boolean exists = scheduleRepository.existsByMemberAndChatRoomAndEventDate(
-				member, chatRoom, eventDate
-		);
-
-		if (exists) {
-			log.info("동행 일정 이미 존재 - memberId={}, chatRoomId={}, eventDate={}",
-					member.getId(), chatRoom.getId(), eventDate);
-			return;
-		}
-
-		// 채팅방 이름을 그대로 일정 title 로 사용
-		Schedule schedule = Schedule.builder()
-				.member(member)
-				.chatRoom(chatRoom)
-				.title(chatRoom.getName())   // 예: "청춘 페스티벌 같이 갈 사람~"
-				.eventDate(eventDate)        // 예: 2025-11-30
-				.memo(null)
-				.build();
-
-		scheduleRepository.save(schedule);
-
-		log.info("동행 일정 자동 생성 성공 - memberId={}, chatRoomId={}, eventDate={}",
-				member.getId(), chatRoom.getId(), eventDate);
 	}
 
 	private ScheduleRes toScheduleRes(Schedule schedule) {
-		Long chatRoomId = schedule.getChatRoom() != null ? schedule.getChatRoom().getId() : null;
-
 		return ScheduleRes.builder()
 				.scheduleId(schedule.getId())
 				.title(schedule.getTitle())
 				.eventDate(schedule.getEventDate())
 				.memo(schedule.getMemo())
-				.chatRoomId(chatRoomId)
+				.chatRoomId(schedule.getChatRoom() != null ? schedule.getChatRoom().getId() : null)
 				.build();
 	}
 }
