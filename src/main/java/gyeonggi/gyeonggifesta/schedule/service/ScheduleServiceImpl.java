@@ -69,7 +69,12 @@ public class ScheduleServiceImpl implements ScheduleService {
 				.build();
 
 		scheduleRepository.save(schedule);
+
+		log.info("[수동 일정] 생성 성공 - memberId={}, scheduleId={}, eventDate={}",
+				currentMember.getId(), schedule.getId(), schedule.getEventDate());
 	}
+
+	// ========== 내 일정 조회 ==========
 
 	@Override
 	@Transactional(readOnly = true)
@@ -84,17 +89,22 @@ public class ScheduleServiceImpl implements ScheduleService {
 		);
 
 		Page<Schedule> schedulePage =
-				scheduleRepository.findByMemberOrderByEventDateAscIdDesc(currentMember, pageable);
+				scheduleRepository.findByMemberIdOrderByEventDateAscIdDesc(currentMember.getId(), pageable);
+
+		log.info("[내 일정 조회] memberId={}, totalElements={}",
+				currentMember.getId(), schedulePage.getTotalElements());
 
 		return schedulePage.map(this::toScheduleRes);
 	}
+
+	// ========== 내 일정 수정 ==========
 
 	@Override
 	@Transactional
 	public void updateSchedule(Long scheduleId, UpdateScheduleReq request) {
 		Member currentMember = securityUtil.getCurrentMember();
 
-		Schedule schedule = scheduleRepository.findByIdAndMember(scheduleId, currentMember)
+		Schedule schedule = scheduleRepository.findByIdAndMemberId(scheduleId, currentMember.getId())
 				.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
 
 		if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
@@ -102,17 +112,23 @@ public class ScheduleServiceImpl implements ScheduleService {
 		}
 
 		schedule.update(request.getTitle(), request.getEventDate(), request.getMemo());
+
+		log.info("[내 일정 수정] memberId={}, scheduleId={}", currentMember.getId(), scheduleId);
 	}
+
+	// ========== 내 일정 삭제 ==========
 
 	@Override
 	@Transactional
 	public void deleteSchedule(Long scheduleId) {
 		Member currentMember = securityUtil.getCurrentMember();
 
-		Schedule schedule = scheduleRepository.findByIdAndMember(scheduleId, currentMember)
+		Schedule schedule = scheduleRepository.findByIdAndMemberId(scheduleId, currentMember.getId())
 				.orElseThrow(() -> new BusinessException(ScheduleErrorCode.NOT_EXIST_SCHEDULE));
 
 		scheduleRepository.delete(schedule);
+
+		log.info("[내 일정 삭제] memberId={}, scheduleId={}", currentMember.getId(), scheduleId);
 	}
 
 	// ========== 동행 채팅방 자동 일정 생성 (AFTER_COMMIT에서 호출) ==========
@@ -155,9 +171,16 @@ public class ScheduleServiceImpl implements ScheduleService {
 
 		scheduleRepository.save(schedule);
 
-		log.info("[동행 일정] 자동 생성 성공 - memberId={}, chatRoomId={}, eventDate={}",
-				member.getId(), chatRoom.getId(), eventDate);
+		// 디버깅 정보 강화
+		log.info("[동행 일정 생성] SUCCESS - scheduleId={}, memberId={}, chatRoomId={}, eventDate={}, title={}",
+				schedule.getId(),
+				schedule.getMember().getId(),
+				schedule.getChatRoom().getId(),
+				schedule.getEventDate(),
+				schedule.getTitle()
+		);
 	}
+
 
 	private ScheduleRes toScheduleRes(Schedule schedule) {
 		return ScheduleRes.builder()
