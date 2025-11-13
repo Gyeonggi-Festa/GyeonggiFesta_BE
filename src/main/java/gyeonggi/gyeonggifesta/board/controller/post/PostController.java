@@ -2,9 +2,11 @@ package gyeonggi.gyeonggifesta.board.controller.post;
 
 import gyeonggi.gyeonggifesta.board.dto.post.request.CreatePostReq;
 import gyeonggi.gyeonggifesta.board.dto.post.request.UpdatePostReq;
+import gyeonggi.gyeonggifesta.board.dto.post.response.PostEventOptionRes;
 import gyeonggi.gyeonggifesta.board.dto.post.response.PostListRes;
 import gyeonggi.gyeonggifesta.board.dto.post.response.PostRes;
 import gyeonggi.gyeonggifesta.board.service.post.PostService;
+import gyeonggi.gyeonggifesta.event.enums.Status;
 import gyeonggi.gyeonggifesta.util.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,12 +15,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth/user")
 public class PostController {
 
-	private final PostService postService;
+        private final PostService postService;
 
 	@PostMapping("/posts")
 	public ResponseEntity<Response<Void>> createPost(@RequestBody CreatePostReq request) {
@@ -72,9 +76,17 @@ public class PostController {
 	}
 
 	@DeleteMapping("/posts/{postId}")
-	public ResponseEntity<Response<Void>> deletePost(@PathVariable Long postId) {
-		postService.deletePost(postId);
+        public ResponseEntity<Response<Void>> deletePost(@PathVariable Long postId) {
+                postService.deletePost(postId);
 
-		return Response.ok().toResponseEntity();
-	}
+                return Response.ok().toResponseEntity();
+        }
+
+        @GetMapping("/posts/events")
+        public ResponseEntity<Response<List<PostEventOptionRes>>> getAvailableEvents(
+                @RequestParam(name = "status", required = false) Status status
+        ) {
+                List<PostEventOptionRes> events = postService.getAvailableEvents(status);
+                return Response.ok(events).toResponseEntity();
+        }
 }
