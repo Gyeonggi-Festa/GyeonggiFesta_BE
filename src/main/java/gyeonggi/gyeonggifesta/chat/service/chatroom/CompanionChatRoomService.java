@@ -87,13 +87,8 @@ public class CompanionChatRoomService {
 
 		companionChatRoomRepository.save(companionChatRoom);
 
-		// 4) 일정 자동 생성 (실패해도 채팅방 생성은 유지)
-		try {
-			scheduleService.createScheduleForCompanion(currentMember, chatRoom, request.getEventDate());
-		} catch (Exception e) {
-			log.error("동행 일정 자동 생성 실패(채팅방은 정상 생성됨) - memberId={}, chatRoomId={}, eventDate={}",
-					currentMember.getId(), chatRoom.getId(), request.getEventDate(), e);
-		}
+		// 4) 일정 자동 생성 (실패해도 채팅방 생성/참여는 영향을 받지 않음)
+		scheduleService.createScheduleForCompanion(currentMember, chatRoom, request.getEventDate());
 	}
 
 	/**
