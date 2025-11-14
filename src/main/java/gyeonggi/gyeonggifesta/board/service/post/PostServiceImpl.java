@@ -242,6 +242,11 @@ public class PostServiceImpl implements PostService {
 
         private Event validateEventForPost(Long eventId) {
                 Event event = getEventOrThrow(eventId);
+
+                if (eventId == null) {
+                        throw new BusinessException(BoardErrorCode.INVALID_EVENT_FOR_POST);
+                }
+
                 LocalDate today = LocalDate.now();
                 if (event.getStatus() == Status.END || (event.getEndDate() != null && event.getEndDate().isBefore(today))) {
                         throw new BusinessException(BoardErrorCode.INVALID_EVENT_FOR_POST);
