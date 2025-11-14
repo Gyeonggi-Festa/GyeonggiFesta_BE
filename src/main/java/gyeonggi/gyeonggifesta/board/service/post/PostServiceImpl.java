@@ -22,6 +22,7 @@ import gyeonggi.gyeonggifesta.member.entity.Member;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,14 +99,16 @@ public class PostServiceImpl implements PostService {
                 Page<Post> postsPage;
                 if (pageable.getSort() != null && pageable.getSort().isSorted()) {
                         String property = pageable.getSort().iterator().next().getProperty();
+                        Pageable basePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
                         if ("likesCount".equals(property)) {
                                 postsPage = eventId == null
-                                        ? postRepository.findByBoardIdOrderByLikesCountDesc(boardId, pageable)
-                                        : postRepository.findByBoardIdAndEventIdOrderByLikesCountDesc(boardId, eventId, pageable);
+                                        ? postRepository.findByBoardIdOrderByLikesCountDesc(boardId, basePageable)
+                                        : postRepository.findByBoardIdAndEventIdOrderByLikesCountDesc(boardId, eventId, basePageable);
                         } else if ("commentsCount".equals(property)) {
                                 postsPage = eventId == null
-                                        ? postRepository.findByBoardIdOrderByCommentsCountDesc(boardId, pageable)
-                                        : postRepository.findByBoardIdAndEventIdOrderByCommentsCountDesc(boardId, eventId, pageable);
+                                        ? postRepository.findByBoardIdOrderByCommentsCountDesc(boardId, basePageable)
+                                        : postRepository.findByBoardIdAndEventIdOrderByCommentsCountDesc(boardId, eventId, basePageable);
                         } else {
                                 postsPage = eventId == null
                                         ? postRepository.findByBoardId(boardId, pageable)
@@ -241,11 +244,11 @@ public class PostServiceImpl implements PostService {
         }
 
         private Event validateEventForPost(Long eventId) {
-                Event event = getEventOrThrow(eventId);
-
                 if (eventId == null) {
                         throw new BusinessException(BoardErrorCode.INVALID_EVENT_FOR_POST);
                 }
+
+                Event event = getEventOrThrow(eventId);
 
                 LocalDate today = LocalDate.now();
                 if (event.getStatus() == Status.END || (event.getEndDate() != null && event.getEndDate().isBefore(today))) {
