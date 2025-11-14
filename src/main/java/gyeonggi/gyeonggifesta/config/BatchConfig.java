@@ -60,7 +60,7 @@ public class BatchConfig {
 			.build();
 	}
 
-	@Scheduled(cron = "0 */10 * * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 */2 * * * ?", zone = "Asia/Seoul")
 	public void performEventSyncJob() throws Exception {
 		JobParameters jobParameters = new JobParametersBuilder()
 			.addLong("time", System.currentTimeMillis())
@@ -68,7 +68,7 @@ public class BatchConfig {
 		jobLauncher.run(eventSyncJob(), jobParameters);
 	}
 
-	@Scheduled(cron = "0 */5 * * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 */3 * * * ?", zone = "Asia/Seoul")
 	public void performAiRecommendationJob() throws Exception {
 		try {
 			JobParameters jobParameters = new JobParametersBuilder()
@@ -82,7 +82,7 @@ public class BatchConfig {
 		}
 	}
 
-	@Scheduled(cron = "0 */5 * * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 */4 * * * ?", zone = "Asia/Seoul")
 	public void performEventDataSyncJob() throws Exception {
 		try {
 			JobParameters jobParameters = new JobParametersBuilder()
