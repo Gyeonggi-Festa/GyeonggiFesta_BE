@@ -82,7 +82,7 @@ public class BatchConfig {
 		}
 	}
 
-	@Scheduled(cron = "0 0 23 * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 */12 0 * * ?", zone = "Asia/Seoul")
 	public void performEventDataSyncJob() throws Exception {
 		try {
 			JobParameters jobParameters = new JobParametersBuilder()
