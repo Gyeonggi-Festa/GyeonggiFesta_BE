@@ -1,6 +1,7 @@
 package gyeonggi.gyeonggifesta.event.dto.event.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import gyeonggi.gyeonggifesta.event.entity.Event;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,6 +13,8 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter @Setter @NoArgsConstructor
 public class EventSyncDto {
+
+	@JsonProperty("eventid")
 	private Long id;
 	private String status;
 	private String category;
