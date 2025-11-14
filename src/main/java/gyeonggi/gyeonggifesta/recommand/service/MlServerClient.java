@@ -36,7 +36,7 @@ public class MlServerClient {
 
 		// 요청을 리스트로 보내고, 응답도 리스트로 받음
 		ResponseEntity<List<AiRecommendRes>> response = restTemplate.exchange(
-			mlServerUrl + "/recommend",
+			mlServerUrl + "/recommned",
 			HttpMethod.POST,
 			entity,
 			new ParameterizedTypeReference<List<AiRecommendRes>>() {}
