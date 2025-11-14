@@ -13,8 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,60 +35,76 @@ public class AiRecommendationSaveService {
 	 */
 	@Transactional
 	public void saveRecommendations(AiRecommendRes response) {
-		if (response == null) {
-			log.warn("AI 추천 응답이 null 입니다. 저장을 건너뜁니다.");
+		if (response == null || CollectionUtils.isEmpty(response.getFestivalRecommendations())) {
+			log.warn("추천 결과가 비어있습니다.");
 			return;
 		}
 
-		if (CollectionUtils.isEmpty(response.getFestivalRecommendations())) {
-			log.warn("사용자 {}의 추천 결과(festivalRecommendations)가 비어 있습니다. 저장을 건너뜁니다.", response.getUserid());
-			return;
-		}
-
-		// 사용자 ID로 멤버 조회
+		// 1. 사용자 ID로 멤버 조회
 		Member member = findMemberByVerifyId(response.getUserid());
 		if (member == null) {
-			log.error("사용자 ID {}에 해당하는 회원을 찾을 수 없습니다. 추천 결과 저장을 건너뜁니다.", response.getUserid());
+			log.error("사용자 ID {}에 해당하는 회원을 찾을 수 없습니다.", response.getUserid());
 			return;
 		}
+
+		// 2. 오늘 이미 저장된 추천 목록 조회 → 이벤트 ID Set 으로 보관
+		LocalDate today = LocalDate.now();
+		List<AiRecommendation> todayRecommendations =
+				aiRecommendationRepository.findByMemberAndCreatedAtDate(member, today);
+
+		Set<Long> alreadySavedEventIds = todayRecommendations.stream()
+				.map(ar -> ar.getEvent().getId())
+				.collect(Collectors.toSet());
 
 		List<AiRecommendation> savedRecommendations = new ArrayList<>();
 
-		// 여러 FestivalRecommendation 이 올 수 있으니 전부 순회
-		response.getFestivalRecommendations().forEach(fr -> {
-			List<String> eventIds = fr.getEventid();
+		// 3. festivalRecommendations 리스트의 첫 번째 항목에 있는 eventid 목록 처리
+		if (!response.getFestivalRecommendations().isEmpty()) {
+			List<String> eventIds = response.getFestivalRecommendations().get(0).getEventid();
 
-			// 🔥 여기서 null/빈 리스트 방어
-			if (CollectionUtils.isEmpty(eventIds)) {
-				log.warn("사용자 {}의 추천 결과 중 eventid 리스트가 비어 있습니다. 이 항목은 건너뜁니다.", member.getVerifyId());
+			if (eventIds == null || eventIds.isEmpty()) {
+				log.warn("사용자 {}의 추천 결과에 eventid 리스트가 비어있습니다.", response.getUserid());
 				return;
 			}
 
-			for (String eventId : eventIds) {
+			for (String eventIdStr : eventIds) {
 				try {
-					Event event = findEventById(eventId);
-					if (event == null) {
-						log.warn("이벤트 ID {}에 해당하는 이벤트를 찾을 수 없습니다. 저장을 건너뜁니다.", eventId);
+					Long eventId = Long.parseLong(eventIdStr);
+
+					// 이미 오늘 저장된 이벤트면 스킵
+					if (alreadySavedEventIds.contains(eventId)) {
+						log.info("회원 {} 오늘자 추천에 이미 존재하는 이벤트 {} → 중복 저장 스킵",
+								member.getVerifyId(), eventId);
 						continue;
 					}
 
+					// 이벤트 ID로 이벤트 조회
+					Event event = eventRepository.findById(eventId).orElse(null);
+					if (event == null) {
+						log.warn("이벤트 ID {}에 해당하는 이벤트를 찾을 수 없습니다.", eventId);
+						continue;
+					}
+
+					// 추천 정보 저장
 					AiRecommendation recommendation = createRecommendation(member, event);
 					savedRecommendations.add(aiRecommendationRepository.save(recommendation));
+					alreadySavedEventIds.add(eventId); // 이후 중복 방지용으로 Set에 추가
+				} catch (NumberFormatException e) {
+					log.error("이벤트 ID {} 변환 중 오류 발생", eventIdStr, e);
 				} catch (Exception e) {
-					log.error("이벤트 ID {}의 추천 정보 저장 중 오류 발생: {}", eventId, e.getMessage());
+					log.error("이벤트 ID {}의 추천 정보 저장 중 오류 발생: {}", eventIdStr, e.getMessage(), e);
 				}
 			}
-		});
-
-		if (savedRecommendations.isEmpty()) {
-			log.info("사용자 {}의 유효한 추천 정보가 없어 저장된 추천이 없습니다.", member.getVerifyId());
-		} else {
-			log.info("사용자 {}의 추천 정보 {}건 저장 완료", member.getVerifyId(), savedRecommendations.size());
 		}
+
+		log.info("사용자 {}의 추천 정보 {}건 저장 완료", member.getVerifyId(), savedRecommendations.size());
 	}
 
 	/**
 	 * 사용자 ID(verifyId)로 회원을 조회
+	 *
+	 * @param userId 사용자 ID(verifyId)
+	 * @return 회원 객체
 	 */
 	private Member findMemberByVerifyId(String userId) {
 		return memberRepository.findByVerifyId(userId).orElse(null);
@@ -93,19 +112,26 @@ public class AiRecommendationSaveService {
 
 	/**
 	 * 이벤트 ID로 이벤트를 조회
+	 *
+	 * @param eventId 이벤트 ID
+	 * @return 이벤트 객체
 	 */
 	private Event findEventById(String eventId) {
 		try {
 			Long id = Long.parseLong(eventId);
 			return eventRepository.findById(id).orElse(null);
 		} catch (NumberFormatException e) {
-			log.error("이벤트 ID {}를 Long 타입으로 변환하는 중 오류 발생", eventId);
+			log.error("이벤트 ID {} 변환 중 오류 발생", eventId);
 			return null;
 		}
 	}
 
 	/**
 	 * 회원과 이벤트로 추천 정보 엔티티 생성
+	 *
+	 * @param member 회원
+	 * @param event  이벤트
+	 * @return 추천 정보 엔티티
 	 */
 	private AiRecommendation createRecommendation(Member member, Event event) {
 		return AiRecommendation.builder()
