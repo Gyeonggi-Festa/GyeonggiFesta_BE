@@ -30,4 +30,6 @@ public class EventDetailRes {
 	private int likes;
 	private int favorites;
 	private int comments;
+	private double rating;
+	private boolean isFavorite;
 }

@@ -13,6 +13,7 @@ import gyeonggi.gyeonggifesta.exception.BusinessException;
 import gyeonggi.gyeonggifesta.member.entity.Member;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -75,9 +76,9 @@ public class EventServiceImpl implements EventService {
 		if (condition.hasTitleKeyword()) {
 			if (memberOpt.isPresent()) {
 				EventSearchHistory searchHistory = EventSearchHistory.builder()
-						.member(memberOpt.get())
-						.content(condition.getTitle())
-						.build();
+					.member(memberOpt.get())
+					.content(condition.getTitle())
+					.build();
 				eventSearchHistoryRepository.save(searchHistory);
 			}
 			spec = spec.and(EventSpecifications.titleContains(condition.getTitle()));
@@ -86,46 +87,55 @@ public class EventServiceImpl implements EventService {
 		return spec;
 	}
 
-	/** Event 엔티티를 EventRes DTO로 변환 */
+	/**
+	 * Event 엔티티를 EventRes DTO로 변환
+	 */
 	private EventRes convertToEventRes(Event event) {
 		return EventRes.builder()
-				.eventId(event.getId())
-				.title(event.getTitle())
-				.category(event.getCodename())
-				.isFree(event.getIsFree())
-				.status(event.getStatus().toString())
-				.startDate(event.getStartDate())
-				.endDate(event.getEndDate())
-				.mainImg(event.getMainImg())
-				.rating(event.getRating())
-				.likes(event.getLikes())
-				.favorites(event.getFavorites())
-				.comments(event.getComments())
-				.ratingCount(event.getEventReviews().size())
-				.build();
+			.eventId(event.getId())
+			.title(event.getTitle())
+			.category(event.getCodename())
+			.isFree(event.getIsFree())
+			.status(event.getStatus().toString())
+			.startDate(event.getStartDate())
+			.endDate(event.getEndDate())
+			.mainImg(event.getMainImg())
+			.rating(event.getRating())
+			.likes(event.getLikes())
+			.favorites(event.getFavorites())
+			.comments(event.getComments())
+			.ratingCount(event.getEventReviews().size())
+			.build();
 	}
 
 	@Override
 	public EventDetailRes getEventDetail(Long eventId) {
+
+		Member currentMember = securityUtil.getCurrentMember();
+
 		Event event = eventRepository.findById(eventId)
-				.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_EVENT));
+			.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_EVENT));
+
+		boolean isFavorite = currentMember.getEventFavorites().contains(event);
 
 		return EventDetailRes.builder()
-				.eventId(event.getId())
-				.status(event.getStatus().name())
-				.category(event.getCodename())
-				.title(event.getTitle())
-				.orgName(event.getOrgName())
-				.useFee(event.getUseFee())
-				.timeInfo(event.getTimeInfo())
-				.orgLink(event.getOrgLink())
-				.mainImg(event.getMainImg())
-				.startDate(event.getStartDate())
-				.endDate(event.getEndDate())
-				.isFree(event.getIsFree())
-				.likes(event.getLikes())
-				.favorites(event.getFavorites())
-				.comments(event.getComments())
-				.build();
+			.eventId(event.getId())
+			.status(event.getStatus().name())
+			.category(event.getCodename())
+			.title(event.getTitle())
+			.orgName(event.getOrgName())
+			.useFee(event.getUseFee())
+			.timeInfo(event.getTimeInfo())
+			.orgLink(event.getOrgLink())
+			.mainImg(event.getMainImg())
+			.startDate(event.getStartDate())
+			.endDate(event.getEndDate())
+			.isFree(event.getIsFree())
+			.likes(event.getLikes())
+			.favorites(event.getFavorites())
+			.comments(event.getComments())
+			.rating(event.getRating())
+			.isFavorite(isFavorite)
+			.build();
 	}
 }
