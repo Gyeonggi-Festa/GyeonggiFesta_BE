@@ -11,7 +11,7 @@ import java.time.LocalDate;
 
 public interface ScheduleService {
 
-	// 사용자가 직접 일정 등록함
+	// 사용자가 직접 일정 등록
 	void createSchedule(CreateScheduleReq request);
 
 	// 내 일정 조회
