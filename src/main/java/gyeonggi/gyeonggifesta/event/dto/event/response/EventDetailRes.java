@@ -32,6 +32,7 @@ public class EventDetailRes {
 	private int favorites;
 	private int comments;
 	private double rating;
+	private boolean isLiked;
 	private boolean isFavorite;
 	private BigDecimal latitude;
 	private BigDecimal longitude;

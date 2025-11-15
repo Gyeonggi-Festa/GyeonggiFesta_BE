@@ -2,6 +2,7 @@ package gyeonggi.gyeonggifesta.event.service.like;
 
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;
 import gyeonggi.gyeonggifesta.event.entity.Event;
+import gyeonggi.gyeonggifesta.event.entity.EventFavorite;
 import gyeonggi.gyeonggifesta.event.entity.EventLike;
 import gyeonggi.gyeonggifesta.event.exception.EventErrorCode;
 import gyeonggi.gyeonggifesta.event.repository.EventLikeRepository;
@@ -92,5 +93,10 @@ public class EventLikeServiceImpl implements EventLikeService {
 					.ratingCount(ratingCount)     // null-safe
 					.build();
 		});
+	}
+
+	public EventLike getEventLikeByEvent(Event event) {
+		return eventLikeRepository.findByEventAndMember(event,
+			securityUtil.getCurrentMember()).orElse(null);
 	}
 }
