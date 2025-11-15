@@ -34,7 +34,7 @@ public class CompanionChatRoomService {
 	private final ChatRoomRepository chatRoomRepository;
 	private final ChatRoomMembershipService chatRoomMembershipService;
 	private final CompanionChatRoomRepository companionChatRoomRepository;
-	private final ScheduleService scheduleService;   // 🔥 일정 서비스 직접 사용
+	private final ScheduleService scheduleService;   // 일정 서비스 직접 사용
 
 	/**
 	 * 동행찾기 채팅방 생성
