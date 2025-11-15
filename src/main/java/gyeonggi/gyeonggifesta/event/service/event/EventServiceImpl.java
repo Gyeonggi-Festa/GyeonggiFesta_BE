@@ -92,20 +92,23 @@ public class EventServiceImpl implements EventService {
 	 */
 	private EventRes convertToEventRes(Event event) {
 		return EventRes.builder()
-			.eventId(event.getId())
-			.title(event.getTitle())
-			.category(event.getCodename())
-			.isFree(event.getIsFree())
-			.status(event.getStatus().toString())
-			.startDate(event.getStartDate())
-			.endDate(event.getEndDate())
-			.mainImg(event.getMainImg())
-			.rating(event.getRating())
-			.likes(event.getLikes())
-			.favorites(event.getFavorites())
-			.comments(event.getComments())
-			.ratingCount(event.getEventReviews().size())
-			.build();
+				.eventId(event.getId())
+				.title(event.getTitle())
+				.category(event.getCodename())
+				.isFree(event.getIsFree())
+				.status(event.getStatus().toString())
+				.startDate(event.getStartDate())
+				.endDate(event.getEndDate())
+				.mainImg(event.getMainImg())
+				.rating(event.getRating())
+				.likes(event.getLikes())
+				.favorites(event.getFavorites())
+				.comments(event.getComments())
+				.ratingCount(event.getEventReviews().size())
+				.latitude(event.getLatitude())
+				.longitude(event.getLongitude())
+				.roadAddress(event.getRoadAddress())
+				.build();
 	}
 
 	@Override
@@ -114,28 +117,32 @@ public class EventServiceImpl implements EventService {
 		Member currentMember = securityUtil.getCurrentMember();
 
 		Event event = eventRepository.findById(eventId)
-			.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_EVENT));
+				.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_EVENT));
 
 		boolean isFavorite = currentMember.getEventFavorites().contains(event);
 
 		return EventDetailRes.builder()
-			.eventId(event.getId())
-			.status(event.getStatus().name())
-			.category(event.getCodename())
-			.title(event.getTitle())
-			.orgName(event.getOrgName())
-			.useFee(event.getUseFee())
-			.timeInfo(event.getTimeInfo())
-			.orgLink(event.getOrgLink())
-			.mainImg(event.getMainImg())
-			.startDate(event.getStartDate())
-			.endDate(event.getEndDate())
-			.isFree(event.getIsFree())
-			.likes(event.getLikes())
-			.favorites(event.getFavorites())
-			.comments(event.getComments())
-			.rating(event.getRating())
-			.isFavorite(isFavorite)
-			.build();
+				.eventId(event.getId())
+				.status(event.getStatus().name())
+				.category(event.getCodename())
+				.title(event.getTitle())
+				.orgName(event.getOrgName())
+				.useFee(event.getUseFee())
+				.timeInfo(event.getTimeInfo())
+				.orgLink(event.getOrgLink())
+				.mainImg(event.getMainImg())
+				.startDate(event.getStartDate())
+				.endDate(event.getEndDate())
+				.isFree(event.getIsFree())
+				.likes(event.getLikes())
+				.favorites(event.getFavorites())
+				.comments(event.getComments())
+				.rating(event.getRating())
+				.isFavorite(isFavorite)
+				.latitude(event.getLatitude())
+				.longitude(event.getLongitude())
+				.roadAddress(event.getRoadAddress())
+				.build();
 	}
+
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -32,4 +33,7 @@ public class EventDetailRes {
 	private int comments;
 	private double rating;
 	private boolean isFavorite;
+	private BigDecimal latitude;
+	private BigDecimal longitude;
+	private String roadAddress;
 }
