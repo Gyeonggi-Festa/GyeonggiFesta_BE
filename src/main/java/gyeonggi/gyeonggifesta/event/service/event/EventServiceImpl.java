@@ -97,6 +97,12 @@ public class EventServiceImpl implements EventService {
 	 * Event 엔티티를 EventRes DTO로 변환
 	 */
 	private EventRes convertToEventRes(Event event) {
+
+		Member currentMember = securityUtil.getCurrentMember();
+
+		EventLike like = eventLikeService.getEventLikeByEvent(event);
+		boolean isLiked = currentMember.getEventLikes().contains(like);
+
 		return EventRes.builder()
 			.eventId(event.getId())
 			.title(event.getTitle())
@@ -114,6 +120,7 @@ public class EventServiceImpl implements EventService {
 			.latitude(event.getLatitude())
 			.longitude(event.getLongitude())
 			.roadAddress(event.getRoadAddress())
+			.isLiked(isLiked)
 			.build();
 	}
 
