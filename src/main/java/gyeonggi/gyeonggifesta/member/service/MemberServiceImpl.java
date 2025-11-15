@@ -116,10 +116,11 @@ public class MemberServiceImpl implements MemberService{
 		Member member = securityUtil.getCurrentMember();
 
 		return MemberInfoRes.builder()
-			.verifyId(member.getVerifyId())
-			.username(member.getUsername())
-			.gender(member.getGender())
-			.email(member.getEmail())
-			.build();
+				.memberId(member.getId())
+				.verifyId(member.getVerifyId())
+				.username(member.getUsername())
+				.gender(member.getGender())
+				.email(member.getEmail())
+				.build();
 	}
 }

@@ -13,6 +13,12 @@ import gyeonggi.gyeonggifesta.board.exception.BoardErrorCode;
 import gyeonggi.gyeonggifesta.board.repository.BoardRepository;
 import gyeonggi.gyeonggifesta.board.repository.PostRepository;
 import gyeonggi.gyeonggifesta.board.service.media.PostMediaService;
+import gyeonggi.gyeonggifesta.chat.entity.ChatRoom;
+import gyeonggi.gyeonggifesta.chat.entity.ChatRoomMember;
+import gyeonggi.gyeonggifesta.chat.enums.ChatRole;
+import gyeonggi.gyeonggifesta.chat.enums.ChatRoomType;
+import gyeonggi.gyeonggifesta.chat.repository.ChatRoomRepository;
+import gyeonggi.gyeonggifesta.chat.service.chatroom.ChatRoomMembershipService;
 import gyeonggi.gyeonggifesta.event.entity.Event;
 import gyeonggi.gyeonggifesta.event.enums.Status;
 import gyeonggi.gyeonggifesta.event.exception.EventErrorCode;
@@ -37,12 +43,18 @@ import java.util.stream.Collectors;
 public class PostServiceImpl implements PostService {
 
         private static final String COMPANION_BOARD_NAME = "동행찾기";
+        // 게시글로부터 생성된 채팅방 출처 구분값
+        private static final String FROM_TYPE_POST = "POST";
 
         private final SecurityUtil securityUtil;
         private final PostMediaService postMediaService;
         private final BoardRepository boardRepository;
         private final PostRepository postRepository;
         private final EventRepository eventRepository;
+
+        // 채팅 관련 의존성
+        private final ChatRoomRepository chatRoomRepository;
+        private final ChatRoomMembershipService chatRoomMembershipService;
 
         @Override
         @Transactional
@@ -77,8 +89,12 @@ public class PostServiceImpl implements PostService {
                 board.addPost(post);
 
                 postMediaService.createPostMedia(post, request.getKeyList());
-                postRepository.save(post);
 
+                // 저장 후 엔티티 반환
+                Post savedPost = postRepository.save(post);
+
+                // 게시글 전용 채팅방 생성 (방장 = 게시글 작성자)
+                createPostChatRoom(savedPost, currentMember);
         }
 
         @Override
@@ -133,13 +149,6 @@ public class PostServiceImpl implements PostService {
                 return toPostRes(post);
         }
 
-        /**
-         * 업데이트 시:
-         * - 게시글의 제목/내용 업데이트 후,
-         * - 전달받은 keyList와 기존 DB에 저장된 미디어의 S3Key를 비교하여
-         * - DB에는 있었으나 새 keyList에 없는 미디어는 S3에서 삭제 후 DB에서도 제거
-         * - 새롭게 추가된 key는 PostMedia 엔티티를 생성하여 추가
-         */
         @Override
         @Transactional
         public void updatePost(Long postId, UpdatePostReq request) {
@@ -159,8 +168,12 @@ public class PostServiceImpl implements PostService {
                 }
 
                 if (request.getRecruitmentTotal() != null || request.getRecruitmentPeriodDays() != null) {
-                        Integer total = request.getRecruitmentTotal() != null ? request.getRecruitmentTotal() : post.getRecruitmentTotal();
-                        Integer period = request.getRecruitmentPeriodDays() != null ? request.getRecruitmentPeriodDays() : post.getRecruitmentPeriodDays();
+                        Integer total = request.getRecruitmentTotal() != null
+                                ? request.getRecruitmentTotal()
+                                : post.getRecruitmentTotal();
+                        Integer period = request.getRecruitmentPeriodDays() != null
+                                ? request.getRecruitmentPeriodDays()
+                                : post.getRecruitmentPeriodDays();
                         validateRecruitmentInfo(total, period);
                         post.setRecruitmentTotal(total);
                         post.setRecruitmentPeriodDays(period);
@@ -171,22 +184,20 @@ public class PostServiceImpl implements PostService {
                 }
 
                 if (request.getPreferredMinAge() != null || request.getPreferredMaxAge() != null) {
-                        Integer minAge = request.getPreferredMinAge() != null ? request.getPreferredMinAge() : post.getPreferredMinAge();
-                        Integer maxAge = request.getPreferredMaxAge() != null ? request.getPreferredMaxAge() : post.getPreferredMaxAge();
+                        Integer minAge = request.getPreferredMinAge() != null
+                                ? request.getPreferredMinAge()
+                                : post.getPreferredMinAge();
+                        Integer maxAge = request.getPreferredMaxAge() != null
+                                ? request.getPreferredMaxAge()
+                                : post.getPreferredMaxAge();
                         validateAgeRange(minAge, maxAge);
                         post.setPreferredMinAge(minAge);
                         post.setPreferredMaxAge(maxAge);
                 }
 
                 postMediaService.updatePostMedia(post, request.getKeyList());
-
         }
 
-        /**
-         * 게시글 삭제 시:
-         * - 게시글에 연결된 모든 미디어의 S3Key를 이용해 S3 파일을 삭제한 후,
-         * - DB에서 게시글과 관련된 미디어도 삭제합니다.
-         */
         @Override
         @Transactional
         public void deletePost(Long postId) {
@@ -371,7 +382,7 @@ public class PostServiceImpl implements PostService {
                         .postId(post.getId())
                         .title(post.getTitle())
                         .writer(post.getMember().getUsername())
-                        .viewCount(post.getViewCount())
+                        .viewCount(post.getViewCount())   // ✅ long → long
                         .likes(post.getPostLikes().size())
                         .comments(post.getPostComments().size())
                         .updatedAt(post.getUpdatedAt().toLocalDate())
@@ -391,12 +402,19 @@ public class PostServiceImpl implements PostService {
 
         private PostRes toPostRes(Post post) {
                 Event event = post.getEvent();
+
+                // 게시글에서 생성된 전용 채팅방 찾기 (없으면 null)
+                Long chatRoomId = chatRoomRepository
+                        .findFirstByFromTypeAndFromId(FROM_TYPE_POST, post.getId())
+                        .map(ChatRoom::getId)
+                        .orElse(null);
+
                 return PostRes.builder()
                         .postId(post.getId())
                         .title(post.getTitle())
                         .content(post.getContent())
                         .writer(post.getMember().getUsername())
-                        .viewCount(post.getViewCount())
+                        .viewCount(post.getViewCount())   // ✅ long → long
                         .likes(post.getPostLikes().size())
                         .comments(post.getPostComments().size())
                         .updatedAt(post.getUpdatedAt())
@@ -411,6 +429,7 @@ public class PostServiceImpl implements PostService {
                         .preferredGender(post.getPreferredGender() != null ? post.getPreferredGender().name() : null)
                         .preferredMinAge(post.getPreferredMinAge())
                         .preferredMaxAge(post.getPreferredMaxAge())
+                        .chatRoomId(chatRoomId)
                         .build();
         }
 
@@ -419,5 +438,52 @@ public class PostServiceImpl implements PostService {
                         .map(PostAvailableDate::getVisitDate)
                         .sorted()
                         .collect(Collectors.toList());
+        }
+
+        /**
+         * 게시글 전용 채팅방 생성
+         * - 채팅방 이름: 행사명이 있으면 행사명, 없으면 게시글 제목
+         * - 설명: 게시글 내용 앞부분 50자
+         * - category: 필요 시 추후 확장
+         */
+        private void createPostChatRoom(Post post, Member owner) {
+
+                Event event = post.getEvent();
+
+                // 채팅방 이름: 행사명 우선, 없으면 게시글 제목
+                String roomName = (event != null && event.getTitle() != null && !event.getTitle().isBlank())
+                        ? event.getTitle()
+                        : post.getTitle();
+
+                // 설명: 게시글 내용 앞부분
+                String info = (post.getContent() != null && !post.getContent().isBlank())
+                        ? truncate(post.getContent(), 50)
+                        : "이 게시글을 위한 동행 채팅방입니다.";
+
+                ChatRoom chatRoom = ChatRoom.builder()
+                        .name(roomName)
+                        .information(info)
+                        .category(null)
+                        .type(ChatRoomType.GROUP)
+                        .fromType(FROM_TYPE_POST)
+                        .fromId(post.getId())
+                        .owner(owner)
+                        .build();
+
+                chatRoom = chatRoomRepository.save(chatRoom);
+
+                // 방장을 채팅방 멤버로 등록
+                ChatRoomMember ownerMember =
+                        chatRoomMembershipService.createChatRoomMember(chatRoom, owner, ChatRole.OWNER);
+                chatRoom.addChatRoomMember(ownerMember);
+        }
+
+        /**
+         * 문자열을 최대 길이만큼 잘라주고, 잘렸으면 "..."를 붙임
+         */
+        private String truncate(String text, int maxLength) {
+                if (text == null) return null;
+                if (text.length() <= maxLength) return text;
+                return text.substring(0, maxLength) + "...";
         }
 }

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
@@ -43,10 +44,10 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 	List<ChatRoom> findChatRoomsByIdInWithMembers(@Param("ids") List<Long> ids);
 
 
-	/* ============================================================
-		아래 3개는 "일반 오픈채팅" 조회용
-		CompanionChatRoom이 연결된 동행방은 전부 제외
-	   ============================================================ */
+    /* ============================================================
+        아래 3개는 "일반 오픈채팅" 조회용
+        CompanionChatRoom이 연결된 동행방은 전부 제외
+       ============================================================ */
 
 
 	/**
@@ -98,4 +99,14 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 			Pageable pageable
 	);
 
+    /* ============================================================
+        게시글/기타에서 생성된 채팅방 조회용
+       ============================================================ */
+
+	/**
+	 * 특정 출처(fromType/fromId)로 생성된 채팅방 조회
+	 * - 게시글 전용 채팅방 찾을 때 사용
+	 *   ex) fromType = "POST", fromId = 게시글 ID
+	 */
+	Optional<ChatRoom> findFirstByFromTypeAndFromId(String fromType, Long fromId);
 }

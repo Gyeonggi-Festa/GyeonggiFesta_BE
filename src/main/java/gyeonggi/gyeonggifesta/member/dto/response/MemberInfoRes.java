@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MemberInfoRes {
 
+	private Long memberId;
 	private String verifyId;
 	private String username;
 	private String gender;
