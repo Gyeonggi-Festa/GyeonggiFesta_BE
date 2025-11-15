@@ -1,6 +1,9 @@
 package gyeonggi.gyeonggifesta.event.service.like;
 
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;
+import gyeonggi.gyeonggifesta.event.entity.Event;
+import gyeonggi.gyeonggifesta.event.entity.EventLike;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,4 +17,6 @@ public interface EventLikeService {
 
 	/** 내가 좋아요한 행사 목록 조회 (페이지네이션) */
 	Page<EventRes> getLikedEvents(Pageable pageable);
+
+	EventLike getEventLikeByEvent(Event event);
 }
