@@ -24,4 +24,6 @@ public class ChatMessageResponse {
 
 	// 이미지/파일 첨부 관련 정보
 	private String mediaUrl;          // 미디어 URL (있는 경우)
+
+	private Long ownerId;
 }

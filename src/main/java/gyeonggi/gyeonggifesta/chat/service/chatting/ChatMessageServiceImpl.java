@@ -323,9 +323,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 		// 삭제된 메시지인지 확인
 		boolean isDeleted = message.getDeletedAt() != null;
 
+		ChatRoom chatRoom = message.getChatRoom();
+
 		return ChatMessageResponse.builder()
 			.messageId(message.getId())
-			.chatRoomId(message.getChatRoom().getId())
+			.chatRoomId(chatRoom.getId())
 			.senderId(sender.getId())
 			.senderName(sender.getUsername())
 			// 삭제된 메시지는 내용을 "삭제된 메시지입니다"로 설정
@@ -335,6 +337,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 			.isDeleted(isDeleted)
 			// 삭제된 메시지는 미디어 URL을 표시하지 않음
 			.mediaUrl(isDeleted ? null : mediaUrl)
+			.ownerId(chatRoom.getOwner().getId())
 			.build();
 	}
 }
