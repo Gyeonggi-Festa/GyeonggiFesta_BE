@@ -27,7 +27,7 @@ public class ScheduleController {
 	}
 
 	/**
-	 * 내 일정 전체 조회 (페이징)
+	 * 내 일정 전체 조회
 	 */
 	@GetMapping
 	public ResponseEntity<Response<Page<ScheduleRes>>> getMySchedules(

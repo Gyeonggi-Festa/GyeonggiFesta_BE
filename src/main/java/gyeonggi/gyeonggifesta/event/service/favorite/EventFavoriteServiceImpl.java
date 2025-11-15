@@ -85,4 +85,10 @@ public class EventFavoriteServiceImpl implements EventFavoriteService{
 					.build();
 		});
 	}
+
+	public EventFavorite getEventFavoriteByEvent(Event event) {
+		return eventFavoriteRepository.findByEventAndMember(event,
+				securityUtil.getCurrentMember())
+			.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_FAVORITE));
+	}
 }

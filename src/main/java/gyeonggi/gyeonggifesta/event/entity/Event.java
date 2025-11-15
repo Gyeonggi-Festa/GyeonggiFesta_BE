@@ -6,6 +6,7 @@ import gyeonggi.gyeonggifesta.util.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,15 @@ public class Event extends BaseEntity {
 
 	private double rating = 0;           // 리뷰 평균 점수
 
+	@Column(name = "latitude", precision = 10, scale = 7)
+	private BigDecimal latitude;
+
+	@Column(name = "longitude", precision = 10, scale = 7)
+	private BigDecimal longitude;
+
+	@Column(name = "road_address")
+	private String roadAddress;
+
 	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<EventComment> eventComments = new ArrayList<>();
 
@@ -100,7 +110,10 @@ public class Event extends BaseEntity {
 			String orgLink,
 			String mainImg,
 			String isFree,
-			String portal
+			String portal,
+			BigDecimal latitude,
+			BigDecimal longitude,
+			String roadAddress
 	) {
 		this.status = status;
 		this.codename = codename;
@@ -115,6 +128,9 @@ public class Event extends BaseEntity {
 		this.mainImg = mainImg;
 		this.isFree = isFree;
 		this.portal = portal;
+		this.latitude = latitude;
+		this.longitude = longitude;
+		this.roadAddress = roadAddress;
 	}
 
 	public int getLikes() { return eventLikes.size(); }
