@@ -178,9 +178,9 @@ public class ChatRoomController {
 	}
 
 	@GetMapping("/chatrooms/{chatRoomId}/owner")
-	public ResponseEntity<Response<Void>> isChatRoomOwner(@PathVariable Long chatRoomId) {
-		chatRoomService.isChatRoomOwner(chatRoomId);
-		return Response.ok().toResponseEntity();
+	public ResponseEntity<Response<Boolean>> isChatRoomOwner(@PathVariable Long chatRoomId) {
+		boolean result = chatRoomService.isChatRoomOwner(chatRoomId);
+		return Response.ok(result).toResponseEntity();
 	}
 
 }
