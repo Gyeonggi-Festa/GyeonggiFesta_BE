@@ -4,11 +4,13 @@ import gyeonggi.gyeonggifesta.event.dto.event.EventSearchCondition;
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventDetailRes;
 import gyeonggi.gyeonggifesta.event.dto.event.response.EventRes;
 import gyeonggi.gyeonggifesta.event.entity.Event;
+import gyeonggi.gyeonggifesta.event.entity.EventFavorite;
 import gyeonggi.gyeonggifesta.event.entity.EventSearchHistory;
 import gyeonggi.gyeonggifesta.event.exception.EventErrorCode;
 import gyeonggi.gyeonggifesta.event.repository.EventRepository;
 import gyeonggi.gyeonggifesta.event.repository.EventSearchHistoryRepository;
 import gyeonggi.gyeonggifesta.event.repository.EventSpecifications;
+import gyeonggi.gyeonggifesta.event.service.favorite.EventFavoriteService;
 import gyeonggi.gyeonggifesta.exception.BusinessException;
 import gyeonggi.gyeonggifesta.member.entity.Member;
 import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
@@ -29,6 +31,7 @@ public class EventServiceImpl implements EventService {
 	private final SecurityUtil securityUtil;
 	private final EventRepository eventRepository;
 	private final EventSearchHistoryRepository eventSearchHistoryRepository;
+	private final EventFavoriteService eventFavoriteService;
 
 	@Override
 	@Transactional
@@ -119,7 +122,9 @@ public class EventServiceImpl implements EventService {
 		Event event = eventRepository.findById(eventId)
 				.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_EVENT));
 
-		boolean isFavorite = currentMember.getEventFavorites().contains(event);
+		EventFavorite favorite = eventFavoriteService.getEventFavoriteByEvent(event);
+
+		boolean isFavorite = currentMember.getEventFavorites().contains(favorite);
 
 		return EventDetailRes.builder()
 				.eventId(event.getId())
