@@ -58,4 +58,6 @@ public interface ChatRoomService {
 	 * 채팅방 초대 (이메일)
 	 */
 	void inviteChatRoom(InviteChatRoomReq request);
+
+	boolean isChatRoomOwner(Long chatRoomId);
 }

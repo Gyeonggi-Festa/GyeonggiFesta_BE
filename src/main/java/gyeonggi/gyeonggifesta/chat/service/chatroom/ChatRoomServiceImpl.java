@@ -6,6 +6,12 @@ import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.KickChatRoomReq;
 import gyeonggi.gyeonggifesta.chat.dto.request.chatroom.UpdateChatRoomReq;
 import gyeonggi.gyeonggifesta.chat.dto.response.ChatRoomRes;
 import gyeonggi.gyeonggifesta.chat.dto.response.MyChatRoomRes;
+import gyeonggi.gyeonggifesta.chat.entity.ChatRoom;
+import gyeonggi.gyeonggifesta.chat.exception.ChatErrorCode;
+import gyeonggi.gyeonggifesta.chat.repository.ChatRoomRepository;
+import gyeonggi.gyeonggifesta.exception.BusinessException;
+import gyeonggi.gyeonggifesta.member.entity.Member;
+import gyeonggi.gyeonggifesta.util.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -19,6 +25,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ChatRoomServiceImpl implements ChatRoomService {
 
+	private final SecurityUtil securityUtil;
+	private final ChatRoomRepository chatRoomRepository;
 	private final ChatRoomManagementService managementService;
 	private final ChatRoomMembershipService membershipService;
 	private final ChatRoomQueryService queryService;
@@ -71,5 +79,13 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 	@Override
 	public Page<ChatRoomRes> listChatRoomsByCategory(int page, int size, String category) {
 		return queryService.listChatRoomsByCategory(page, size, category);
+	}
+
+	@Override
+	public boolean isChatRoomOwner(Long chatRoomId) {
+		Member currentMember = securityUtil.getCurrentMember();
+		ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+			.orElseThrow(() -> new BusinessException(ChatErrorCode.NOT_EXIST_CHATROOM));
+		return chatRoom.getOwner().equals(currentMember);
 	}
 }
