@@ -337,7 +337,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 			.isDeleted(isDeleted)
 			// 삭제된 메시지는 미디어 URL을 표시하지 않음
 			.mediaUrl(isDeleted ? null : mediaUrl)
-			.ownerId(chatRoom.getOwner().getId())
 			.build();
 	}
+
+
 }
