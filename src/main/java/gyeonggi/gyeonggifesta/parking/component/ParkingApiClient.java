@@ -14,7 +14,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,31 +39,40 @@ public class ParkingApiClient {
 	private int defaultPageSize;
 
 	// ---------- Public API ----------
-	public List<JsonNode> fetchAllRows(String sigunNm) {
+
+	/** 경기도 전체 row 수집 */
+	public List<JsonNode> fetchAllRows() {
 		// 1차 시도 (기본)
 		try {
-			return fetch(sigunNm, defaultPageSize, BuildMode.ENCODE_ALL, HeaderMode.MINIMAL);
+			return fetch(defaultPageSize, BuildMode.ENCODE_ALL, HeaderMode.MINIMAL);
 		} catch (BusinessException e1) {
 			log.warn("[Fallback#1] 기본 호출 실패: {} - {}", e1.getClass().getSimpleName(), e1.getMessage());
 			// 2차 시도: 압축 비활성화
 			try {
-				return fetch(sigunNm, defaultPageSize, BuildMode.ENCODE_ALL, HeaderMode.NO_COMPRESSION);
+				return fetch(defaultPageSize, BuildMode.ENCODE_ALL, HeaderMode.NO_COMPRESSION);
 			} catch (BusinessException e2) {
 				log.warn("[Fallback#2] 압축 비활성화 실패: {} - {}", e2.getClass().getSimpleName(), e2.getMessage());
 				// 3차 시도: pSize 축소 + 인코딩 방식 변경
 				int small = Math.min(defaultPageSize, 50);
-				return fetch(sigunNm, small, BuildMode.ENCODE_QUERY_ONLY, HeaderMode.MINIMAL);
+				return fetch(small, BuildMode.ENCODE_QUERY_ONLY, HeaderMode.MINIMAL);
 			}
 		}
 	}
 
 	// ---------- Internal ----------
+
 	private enum BuildMode { ENCODE_ALL, ENCODE_QUERY_ONLY }
 	private enum HeaderMode { MINIMAL, NO_COMPRESSION }
 
-	private List<JsonNode> fetch(String sigunNm, int pageSize, BuildMode buildMode, HeaderMode headerMode) {
+	private static class ParseResult {
+		int total = Integer.MAX_VALUE;
+		int pageRowCount = 0;
+		String errorCode;
+		String errorMessage;
+	}
+
+	private List<JsonNode> fetch(int pageSize, BuildMode buildMode, HeaderMode headerMode) {
 		HttpStatusCode lastStatus = null;
-		String lastErrBody = null;
 
 		try {
 			int page = 1;
@@ -73,15 +81,13 @@ public class ParkingApiClient {
 
 			while ((page - 1) * pageSize < total) {
 				URI uri = (buildMode == BuildMode.ENCODE_ALL)
-						? buildUriEncodeAll(sigunNm, page, pageSize)
-						: buildUriEncodeQueryOnly(sigunNm, page, pageSize);
+						? buildUriEncodeAll(page, pageSize)
+						: buildUriEncodeQueryOnly(page, pageSize);
 
 				HttpHeaders headers = new HttpHeaders();
-				// 일부 게이트웨이는 Accept 헤더가 특정 값일 때만 정상 동작
 				headers.set(HttpHeaders.ACCEPT, "*/*");
 				headers.set(HttpHeaders.USER_AGENT, "Mozilla/5.0");
 				if (headerMode == HeaderMode.NO_COMPRESSION) {
-					// 압축 응답을 꺼서 RestTemplate/중간 프록시 이슈 회피
 					headers.set(HttpHeaders.ACCEPT_ENCODING, "identity");
 				}
 				HttpEntity<Void> entity = new HttpEntity<>(headers);
@@ -101,7 +107,6 @@ public class ParkingApiClient {
 				JsonNode body = mapper.readTree(bodyStr);
 				ParseResult pr = parseAndCollect(body, rows);
 				if (pr.errorCode != null) {
-					// 예: ERROR-310 → 폴백 단계로 넘김
 					log.error("API 오류 code={} msg={}", pr.errorCode, pr.errorMessage);
 					throw new BusinessException(ParkingErrorCode.API_REQUEST_FAILED);
 				}
@@ -120,7 +125,7 @@ public class ParkingApiClient {
 
 		} catch (HttpStatusCodeException httpEx) {
 			lastStatus = httpEx.getStatusCode();
-			lastErrBody = httpEx.getResponseBodyAsString();
+			String lastErrBody = httpEx.getResponseBodyAsString();
 			log.error("HTTP 오류 status={} body={}", lastStatus, lastErrBody);
 			throw new BusinessException(ParkingErrorCode.API_REQUEST_FAILED);
 		} catch (BusinessException be) {
@@ -133,13 +138,6 @@ public class ParkingApiClient {
 				log.warn("최종 응답 상태: {}", lastStatus);
 			}
 		}
-	}
-
-	private static class ParseResult {
-		int total = Integer.MAX_VALUE;
-		int pageRowCount = 0;
-		String errorCode;
-		String errorMessage;
 	}
 
 	private ParseResult parseAndCollect(JsonNode body, List<JsonNode> rows) {
@@ -185,7 +183,7 @@ public class ParkingApiClient {
 	}
 
 	// 전체 encode (기존 방식)
-	private URI buildUriEncodeAll(String sigunNm, int page, int pageSize) {
+	private URI buildUriEncodeAll(int page, int pageSize) {
 		return UriComponentsBuilder
 				.fromHttpUrl(baseUrl)
 				.pathSegment(serviceName)
@@ -193,23 +191,19 @@ public class ParkingApiClient {
 				.queryParam("Type", "json")
 				.queryParam("pIndex", page)
 				.queryParam("pSize", pageSize)
-				.queryParam("SIGUN_NM", sigunNm)
 				.encode(StandardCharsets.UTF_8)
 				.build()
 				.toUri();
 	}
 
-	// queryParam 인코딩만 신뢰(전체 encode 미적용) + SIGUN_NM 수동 인코딩 비교
-	private URI buildUriEncodeQueryOnly(String sigunNm, int page, int pageSize) {
-		// 수동 인코딩 값
-		String encSigun = URLEncoder.encode(sigunNm, StandardCharsets.UTF_8);
+	// queryParam 인코딩만 신뢰(전체 encode 미적용)
+	private URI buildUriEncodeQueryOnly(int page, int pageSize) {
 		return UriComponentsBuilder
-				.fromHttpUrl(baseUrl + "/" + serviceName) // pathSegment + 전체 encode 생략
+				.fromHttpUrl(baseUrl + "/" + serviceName)
 				.queryParam("KEY", apiKey)
 				.queryParam("Type", "json")
 				.queryParam("pIndex", page)
 				.queryParam("pSize", pageSize)
-				.queryParam("SIGUN_NM", encSigun) // 일부 게이트웨이가 이 형태를 더 잘 받는 경우가 있음
 				.build(false) // 전체 encode 비활성화
 				.toUri();
 	}
