@@ -26,4 +26,11 @@ public interface MemberService {
 	MemberInfoRes getMemberInfo();
 
 	void validEmail(CustomUserDetails userDetails, String email);
+
+	/**
+	 * 회원 탈퇴
+	 *
+	 * @param userDetails 현재 로그인된 유저
+	 */
+	void withdraw(CustomUserDetails userDetails);
 }
