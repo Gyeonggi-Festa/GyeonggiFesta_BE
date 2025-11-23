@@ -94,6 +94,13 @@ public class JwtFilter extends OncePerRequestFilter {
 		try {
 			if (jwtTokenProvider.validateToken(accessToken)) {
 				Claims claims = jwtTokenProvider.getClaims(accessToken);
+
+				String role = (String) claims.get("role");
+				if ("ROLE_DELETED".equals(role)) { // 탈퇴 회원 ROLE_DELETED 차단
+					sendUnauthorizedResponse(response);
+					return false;
+				}
+
 				CustomUserDetails userDetails = CustomUserDetails.createCustomUserDetailsFromClaims(claims);
 				setUserAuthentication(userDetails);
 			} else {
