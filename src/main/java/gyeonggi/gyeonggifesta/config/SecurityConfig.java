@@ -4,6 +4,7 @@ import gyeonggi.gyeonggifesta.auth.jwt.JwtFilter;
 import gyeonggi.gyeonggifesta.auth.oauth2.handler.OAuth2FailureHandler;
 import gyeonggi.gyeonggifesta.auth.oauth2.handler.OAuth2SuccessHandler;
 import gyeonggi.gyeonggifesta.auth.oauth2.service.CustomOAuth2UserService;
+import gyeonggi.gyeonggifesta.member.repository.MemberRepository;
 import gyeonggi.gyeonggifesta.util.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +43,6 @@ public class SecurityConfig {
 			"/api/register",
 			"/api/login",
 			"/api/token/**",
-			// "/api/dev/**",  // 개발용 임시 로그인
 			"/ws-stomp/**",
 			"/batch/event-sync/run", // 수동 배치 -> 개발때문에 잠시 넣은거
 			"/api/calendar/authorize",
@@ -54,6 +54,7 @@ public class SecurityConfig {
 	private final OAuth2SuccessHandler oAuth2SuccessHandler;
 	private final OAuth2FailureHandler oAuth2FailureHandler;
 	private final JwtTokenProvider jwtTokenProvider;
+	private final MemberRepository memberRepository;
 
 	@Bean
 	@Profile("local")
@@ -70,7 +71,8 @@ public class SecurityConfig {
 						.requestMatchers(WHITELIST.toArray(new String[0])).permitAll()
 						.anyRequest().authenticated())
 
-				.addFilterBefore(new JwtFilter(jwtTokenProvider),
+				.addFilterBefore(
+						new JwtFilter(jwtTokenProvider, memberRepository),
 						UsernamePasswordAuthenticationFilter.class)
 
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()));
@@ -96,7 +98,8 @@ public class SecurityConfig {
 						.requestMatchers(WHITELIST.toArray(new String[0])).permitAll()
 						.anyRequest().authenticated())
 
-				.addFilterBefore(new JwtFilter(jwtTokenProvider),
+				.addFilterBefore(
+						new JwtFilter(jwtTokenProvider, memberRepository),
 						UsernamePasswordAuthenticationFilter.class)
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
@@ -116,9 +119,8 @@ public class SecurityConfig {
 		return source;
 	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 }
