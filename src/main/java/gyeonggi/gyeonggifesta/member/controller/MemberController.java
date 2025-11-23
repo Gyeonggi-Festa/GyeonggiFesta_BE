@@ -28,7 +28,9 @@ public class MemberController {
 	 */
 	@PostMapping("/auth/semi/feature")
 	public ResponseEntity<Response<InputFeatureRes>> inputFeature(
-		@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody InputFeatureReq request) {
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@RequestBody InputFeatureReq request
+	) {
 		InputFeatureRes response = memberService.inputFeature(userDetails, request);
 
 		return Response.ok(response).toResponseEntity();
@@ -54,10 +56,23 @@ public class MemberController {
 	}
 
 	@GetMapping("/auth/all-user/email/{email}")
-	public ResponseEntity<Response<Void>> checkEmailDup(@AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable String email) {
+	public ResponseEntity<Response<Void>> checkEmailDup(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable String email
+	) {
 		memberService.validEmail(userDetails, email);
 
 		return Response.ok().toResponseEntity();
 	}
 
+	/**
+	 * 회원 탈퇴
+	 *
+	 * @param userDetails 현재 로그인된 유저
+	 */
+	@DeleteMapping("/auth/user/withdraw")
+	public ResponseEntity<Response<Void>> withdraw(@AuthenticationPrincipal CustomUserDetails userDetails) {
+		memberService.withdraw(userDetails);
+		return Response.ok().toResponseEntity();
+	}
 }

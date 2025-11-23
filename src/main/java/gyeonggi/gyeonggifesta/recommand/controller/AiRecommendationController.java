@@ -30,5 +30,4 @@ public class AiRecommendationController {
 		List<RecommendHistoryRes> result = aiRecommendService.getRecommendEventHistory();
 		return Response.ok(result).toResponseEntity();
 	}
-
 }

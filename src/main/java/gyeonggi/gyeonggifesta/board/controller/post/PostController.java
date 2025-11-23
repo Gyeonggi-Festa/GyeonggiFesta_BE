@@ -2,6 +2,7 @@ package gyeonggi.gyeonggifesta.board.controller.post;
 
 import gyeonggi.gyeonggifesta.board.dto.post.request.CreatePostReq;
 import gyeonggi.gyeonggifesta.board.dto.post.request.UpdatePostReq;
+import gyeonggi.gyeonggifesta.board.dto.post.response.EventOptionRes;
 import gyeonggi.gyeonggifesta.board.dto.post.response.PostListRes;
 import gyeonggi.gyeonggifesta.board.dto.post.response.PostRes;
 import gyeonggi.gyeonggifesta.board.service.post.PostService;
@@ -13,6 +14,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth/user")
@@ -20,24 +23,29 @@ public class PostController {
 
 	private final PostService postService;
 
-	@PostMapping("/posts")
-	public ResponseEntity<Response<Void>> createPost(@RequestBody CreatePostReq request) {
-		postService.createPost(request);
+        @PostMapping("/posts")
+        public ResponseEntity<Response<Void>> createPost(@RequestBody CreatePostReq request) {
+                postService.createPost(request);
 
-		return Response.ok().toResponseEntity();
-	}
+                return Response.ok().toResponseEntity();
+        }
 
-	/**
-	 * 게시판 별 게시글 목록 조회 (페이징, 정렬 지원)
-	 * URL 예시: /api/auth/user/boards/{boardId}/posts?sort=latest&page=1&size=10
-	 * sort 파라미터는 "latest", "likes", "comments" 중 하나
-	 */
-	@GetMapping("/boards/{boardId}/posts")
-	public ResponseEntity<Page<PostListRes>> getPosts(
-		@PathVariable Long boardId,
-		@RequestParam(name = "sort", defaultValue = "latest") String sort,
-		@RequestParam(name = "page", defaultValue = "1") int page,
-		@RequestParam(name = "size", defaultValue = "10") int size) {
+        @GetMapping("/posts/events")
+        public ResponseEntity<Response<List<EventOptionRes>>> getActiveEvents() {
+                return Response.ok(postService.getActiveEvents()).toResponseEntity();
+        }
+
+        /**
+         * 동행 게시글 목록 조회 (페이징, 정렬 지원)
+         * URL 예시: /api/auth/user/posts?sort=latest&page=1&size=10
+         * sort 파라미터는 "latest", "likes", "comments" 중 하나
+         */
+        @GetMapping("/posts")
+        public ResponseEntity<Page<PostListRes>> getPosts(
+                @RequestParam(name = "sort", defaultValue = "latest") String sort,
+                @RequestParam(name = "page", defaultValue = "1") int page,
+                @RequestParam(name = "size", defaultValue = "10") int size,
+                @RequestParam(name = "eventId", required = false) Long eventId) {
 
 		Sort sortCriteria;
 		switch (sort.toLowerCase()) {
@@ -52,10 +60,10 @@ public class PostController {
 				sortCriteria = Sort.by("updatedAt").descending();
 				break;
 		}
-		PageRequest pageable = PageRequest.of(page - 1, size, sortCriteria);
-		Page<PostListRes> postsPage = postService.getPosts(boardId, pageable);
-		return ResponseEntity.ok(postsPage);
-	}
+                PageRequest pageable = PageRequest.of(page - 1, size, sortCriteria);
+                Page<PostListRes> postsPage = postService.getPosts(eventId, pageable);
+                return ResponseEntity.ok(postsPage);
+        }
 
 	@GetMapping("/posts/{postId}")
 	public ResponseEntity<Response<PostRes>> getPost(@PathVariable Long postId) {

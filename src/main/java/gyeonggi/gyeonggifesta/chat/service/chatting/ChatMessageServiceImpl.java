@@ -41,7 +41,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 	// WebSocket 메시지 발송을 위한 템플릿
 	private final SimpMessagingTemplate messagingTemplate;
 
-	private final String MEDIA_URL = "https://seoulfest.s3.amazonaws.com/";
+	private final String MEDIA_URL = "https://gyeonggifesta.s3.ap-northeast-2.amazonaws.com/";
 
 	@Override
 	@Transactional
@@ -323,9 +323,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 		// 삭제된 메시지인지 확인
 		boolean isDeleted = message.getDeletedAt() != null;
 
+		ChatRoom chatRoom = message.getChatRoom();
+
 		return ChatMessageResponse.builder()
 			.messageId(message.getId())
-			.chatRoomId(message.getChatRoom().getId())
+			.chatRoomId(chatRoom.getId())
 			.senderId(sender.getId())
 			.senderName(sender.getUsername())
 			// 삭제된 메시지는 내용을 "삭제된 메시지입니다"로 설정
@@ -337,4 +339,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 			.mediaUrl(isDeleted ? null : mediaUrl)
 			.build();
 	}
+
+
 }
