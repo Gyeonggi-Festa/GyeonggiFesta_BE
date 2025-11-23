@@ -40,11 +40,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		Optional<Member> memberOpt = memberRepository.findByVerifyId(oAuth2UserInfo.getVerifyId());
 		Member member = memberOpt.orElseGet(() -> register(oAuth2UserInfo));
 
+		// 탈퇴 회원(Role.DELETED)은 로그인 불가
+		if (member.getRole() == Role.ROLE_DELETED) {
+			OAuth2Error oauth2Error = new OAuth2Error(
+					"withdrawn_user",
+					"탈퇴한 계정입니다.",
+					null
+			);
+			throw new OAuth2AuthenticationException(oauth2Error, "탈퇴한 계정으로 로그인 시도");
+		}
+
 		LoginDto loginDto = LoginDto.builder()
-			.email(member.getEmail())
-			.verifyId(member.getVerifyId())
-			.role(member.getRole().name())
-			.build();
+				.email(member.getEmail())
+				.verifyId(member.getVerifyId())
+				.role(member.getRole().name())
+				.build();
 
 		return CustomUserDetails.create(loginDto, oAuth2User.getAttributes());
 	}
@@ -54,15 +64,19 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		String email = userInfo.getEmail();
 
 		if (memberRepository.existsByEmail(email)) {
-			OAuth2Error oauth2Error = new OAuth2Error("email_duplicated", "이 이메일은 이미 사용 중입니다.", null);
+			OAuth2Error oauth2Error = new OAuth2Error(
+					"email_duplicated",
+					"이 이메일은 이미 사용 중입니다.",
+					null
+			);
 			throw new OAuth2AuthenticationException(oauth2Error, "이메일 중복 오류");
 		}
 
 		Member newMember = Member.builder()
-			.email(email)
-			.verifyId(userInfo.getVerifyId())
-			.role(Role.ROLE_SEMI_USER)
-			.build();
+				.email(email)
+				.verifyId(userInfo.getVerifyId())
+				.role(Role.ROLE_SEMI_USER)
+				.build();
 
 		memberRepository.save(newMember);
 
