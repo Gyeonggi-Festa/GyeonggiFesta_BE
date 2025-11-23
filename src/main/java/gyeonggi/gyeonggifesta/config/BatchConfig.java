@@ -60,7 +60,7 @@ public class BatchConfig {
 			.build();
 	}
 
-	@Scheduled(cron = "0 0 22 * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 0/10 * * * ?", zone = "Asia/Seoul")
 	public void performEventSyncJob() throws Exception {
 		JobParameters jobParameters = new JobParametersBuilder()
 			.addLong("time", System.currentTimeMillis())
@@ -82,7 +82,7 @@ public class BatchConfig {
 		}
 	}
 
-	@Scheduled(cron = "0 0 23 * * ?", zone = "Asia/Seoul")
+	@Scheduled(cron = "0 0/15 * * * ?", zone = "Asia/Seoul")
 	public void performEventDataSyncJob() throws Exception {
 		try {
 			JobParameters jobParameters = new JobParametersBuilder()
