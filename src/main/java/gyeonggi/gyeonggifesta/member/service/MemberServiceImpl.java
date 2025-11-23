@@ -125,28 +125,30 @@ public class MemberServiceImpl implements MemberService {
 	}
 
 	/**
-	 * 회원 탈퇴
+	 * 회원 탈퇴 (소프트 삭제 + 익명 처리)
 	 *
-	 * - 현재 로그인된 멤버 조회
-	 * - 해당 멤버의 Refresh Token 삭제
-	 * - Member 삭제 (연관 관계는 cascade + orphanRemoval에 의해 함께 삭제)
+	 * - RT 삭제
+	 * - 개인정보 익명화
+	 * - ROLE_DELETED 설정
 	 * - SecurityContext 정리
 	 */
 	@Override
 	@Transactional
 	public void withdraw(CustomUserDetails userDetails) {
-		// 항상 현재 SecurityContext 기반으로 멤버 조회
-		Member currentMember = securityUtil.getCurrentMember();
+		Member member = securityUtil.getCurrentMember();
 
-		// 1) 이 유저의 리프레시 토큰 제거 (재로그인 불가)
-		jwtTokenProvider.deleteRefreshToken(currentMember.getVerifyId());
+		// 1) Refresh Token 삭제
+		jwtTokenProvider.deleteRefreshToken(member.getVerifyId());
 
-		// 2) 멤버 삭제
-		// Member 엔티티에 연관관계가 모두 cascade = ALL, orphanRemoval = true로 설정되어 있어
-		// 연관된 엔티티들은 JPA가 함께 정리해준다.
-		memberRepository.delete(currentMember);
+		// 2) 개인정보 익명 처리
+		member.setUsername("탈퇴한 회원");
+		// 동일 이메일 재사용 방지를 위해 dummy 이메일로 변경
+		member.setEmail("deleted-user-" + member.getId() + "@deleted.local");
+		member.setBirthDay(null);
+		member.setGender(null);
+		member.setRole(Role.ROLE_DELETED);
 
-		// 3) SecurityContext 정리 (요청 이후 더 이상 인증 정보 사용 방지)
+		// 3) SecurityContext 정리
 		SecurityContextHolder.clearContext();
 	}
 }
