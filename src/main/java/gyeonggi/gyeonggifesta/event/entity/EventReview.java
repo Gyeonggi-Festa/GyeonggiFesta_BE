@@ -49,18 +49,18 @@ public class EventReview extends BaseEntity {
 	/**
 	 * 리뷰에 미디어를 추가합니다.
 	 *
-	 * @param s3Key 이미지의 S3 키
+	 * @param s3Key   이미지의 S3 키
 	 * @param imageUrl 이미지 URL
-	 * @param order 이미지 순서
+	 * @param order   이미지 순서
 	 * @return 생성된 EventReviewMedia
 	 */
 	public EventReviewMedia addMedia(String s3Key, String imageUrl, int order) {
 		EventReviewMedia media = EventReviewMedia.builder()
-			.eventReview(this)
-			.s3Key(s3Key)
-			.imageUrl(imageUrl)
-			.order(order)
-			.build();
+				.eventReview(this)
+				.s3Key(s3Key)
+				.imageUrl(imageUrl)
+				.order(order)
+				.build();
 		this.mediaList.add(media);
 		return media;
 	}
@@ -76,22 +76,15 @@ public class EventReview extends BaseEntity {
 	 * 리뷰 내용을 업데이트합니다.
 	 *
 	 * @param content 업데이트할 내용
-	 * @param rating 업데이트할 별점
+	 * @param rating  업데이트할 별점 (null이면 변경하지 않음)
 	 */
 	public void update(String content, Double rating) {
 		if (content != null) {
 			this.content = content;
 		}
 
-		if (rating != null && this.rating != rating) {
-			double oldRating = this.rating;
+		if (rating != null) {
 			this.rating = rating;
-
-			// 이벤트의 평균 별점 업데이트
-			if (this.event != null) {
-				this.event.removeRating(oldRating);
-				this.event.addRating(rating);
-			}
 		}
 	}
 }
