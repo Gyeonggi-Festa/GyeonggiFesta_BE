@@ -98,6 +98,8 @@ public class EventServiceImpl implements EventService {
 	 */
 	private EventRes convertToEventRes(Event event) {
 
+		event.recalcRating();
+
 		Member currentMember = securityUtil.getCurrentMember();
 
 		EventLike like = eventLikeService.getEventLikeByEvent(event);
@@ -131,6 +133,8 @@ public class EventServiceImpl implements EventService {
 
 		Event event = eventRepository.findById(eventId)
 			.orElseThrow(() -> new BusinessException(EventErrorCode.NOT_EXIST_EVENT));
+
+		event.recalcRating();
 
 		EventFavorite favorite = eventFavoriteService.getEventFavoriteByEvent(event);
 		EventLike like = eventLikeService.getEventLikeByEvent(event);
