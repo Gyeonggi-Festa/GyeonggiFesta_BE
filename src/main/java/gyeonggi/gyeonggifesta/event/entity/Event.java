@@ -70,7 +70,10 @@ public class Event extends BaseEntity {
 	@Column(columnDefinition = "TEXT")
 	private String portal;               // URL
 
-	private double rating = 0;           // 리뷰 평균 점수
+	/**
+	 * 이벤트의 평균 평점 (0.5 단위 반올림 적용)
+	 */
+	private double rating = 0;
 
 	@Column(name = "latitude", precision = 10, scale = 7)
 	private BigDecimal latitude;
@@ -155,30 +158,43 @@ public class Event extends BaseEntity {
 		eventFavorite.setMember(null);
 	}
 
+	/**
+	 * 리뷰 추가 시 리스트에 추가하고,
+	 * 전체 리뷰 기준으로 다시 평균 평점을 계산한다.
+	 */
 	public void addEventReview(EventReview eventReview) {
 		this.eventReviews.add(eventReview);
-		addRating(eventReview.getRating());
+		recalcRating();
 	}
 
+	/**
+	 * 리뷰 제거 시 리스트에서 제거하고,
+	 * 전체 리뷰 기준으로 다시 평균 평점을 계산한다.
+	 */
 	public void removeEventReview(EventReview eventReview) {
 		this.eventReviews.remove(eventReview);
-		removeRating(eventReview.getRating());
+		recalcRating();
 		eventReview.setEvent(null);
 	}
 
-	public void addRating(double newRating) {
-		double totalRating = this.rating * (eventReviews.size() - 1) + newRating;
-		double avgRating = totalRating / eventReviews.size();
-		this.rating = Math.round(avgRating * 2) / 2.0; // 0.5 단위 반올림
-	}
-
-	public void removeRating(double oldRating) {
-		if (eventReviews.size() <= 1) {
+	/**
+	 * 현재 eventReviews 리스트 전체를 기준으로
+	 * 평균 평점을 다시 계산한다.
+	 *
+	 * - 리뷰가 없으면 rating = 0
+	 * - 있으면 평균을 구한 뒤 0.5 단위로 반올림
+	 */
+	public void recalcRating() {
+		if (eventReviews == null || eventReviews.isEmpty()) {
 			this.rating = 0;
 			return;
 		}
-		double totalRating = this.rating * eventReviews.size() - oldRating;
-		double avgRating = totalRating / (eventReviews.size() - 1);
-		this.rating = Math.round(avgRating * 2) / 2.0;
+
+		double sum = eventReviews.stream()
+				.mapToDouble(EventReview::getRating)
+				.sum();
+
+		double avg = sum / eventReviews.size();
+		this.rating = Math.round(avg * 2) / 2.0;  // 0.5 단위 반올림
 	}
 }
