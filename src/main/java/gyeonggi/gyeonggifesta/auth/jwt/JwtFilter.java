@@ -1,7 +1,11 @@
 package gyeonggi.gyeonggifesta.auth.jwt;
 
 import gyeonggi.gyeonggifesta.auth.custom.CustomUserDetails;
+import gyeonggi.gyeonggifesta.auth.dto.LoginDto;
 import gyeonggi.gyeonggifesta.auth.exception.AuthErrorCode;
+import gyeonggi.gyeonggifesta.member.entity.Member;
+import gyeonggi.gyeonggifesta.member.enums.Role;
+import gyeonggi.gyeonggifesta.member.repository.MemberRepository;
 import gyeonggi.gyeonggifesta.util.jwt.JwtTokenProvider;
 import gyeonggi.gyeonggifesta.util.response.Response;
 import io.jsonwebtoken.Claims;
@@ -34,14 +38,14 @@ public class JwtFilter extends OncePerRequestFilter {
 			"/api/token/exchange",
 			"/api/token/refresh",
 			"/ws-stomp/**"
-			// "/api/dev/**" // -> 개발용 - 임시코드 직접 생성
 	);
 
 	private final JwtTokenProvider jwtTokenProvider;
+	private final MemberRepository memberRepository;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-		FilterChain filterChain) throws ServletException, IOException {
+									FilterChain filterChain) throws ServletException, IOException {
 
 		log.info("requestURI={}", request.getRequestURI());
 		String requestURI = request.getRequestURI();
@@ -57,7 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 
-	// 화이트리스트 URL 패턴 매칭 메서드 추가
+	// 화이트리스트 URL 패턴 매칭 메서드
 	private boolean isWhitelisted(String requestURI) {
 		// 정확히 일치하는 경우
 		if (WHITELIST.contains(requestURI)) {
@@ -66,7 +70,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
 		// 와일드카드 패턴 매칭 (/ws-stomp/**)
 		for (String pattern : WHITELIST) {
-			if (pattern.endsWith("/**") && requestURI.startsWith(pattern.substring(0, pattern.length() - 2))) {
+			if (pattern.endsWith("/**")
+					&& requestURI.startsWith(pattern.substring(0, pattern.length() - 3))) {
 				return true;
 			}
 		}
@@ -80,10 +85,9 @@ public class JwtFilter extends OncePerRequestFilter {
 	 * @param request  클라이언트 요청 객체
 	 * @param response 클라이언트 응답 객체
 	 * @return 인증이 정상적으로 완료되면 true, 아니면 false
-	 * @throws IOException
 	 */
 	private boolean processTokenAuthentication(HttpServletRequest request, HttpServletResponse response) throws
-		IOException {
+			IOException {
 		String accessToken = resolveToken(request);
 
 		if (accessToken == null) {
@@ -95,13 +99,24 @@ public class JwtFilter extends OncePerRequestFilter {
 			if (jwtTokenProvider.validateToken(accessToken)) {
 				Claims claims = jwtTokenProvider.getClaims(accessToken);
 
-				String role = (String) claims.get("role");
-				if ("ROLE_DELETED".equals(role)) { // 탈퇴 회원 ROLE_DELETED 차단
+				// 토큰 subject(verifyId)로 현재 Member 조회
+				String verifyId = claims.getSubject();
+				Member member = memberRepository.findByVerifyId(verifyId).orElse(null);
+
+				// 회원이 없거나 탈퇴 회원이면 바로 차단
+				if (member == null || member.getRole() == Role.ROLE_DELETED) {
 					sendUnauthorizedResponse(response);
 					return false;
 				}
 
-				CustomUserDetails userDetails = CustomUserDetails.createCustomUserDetailsFromClaims(claims);
+				// DB 최신 상태 기준으로 CustomUserDetails 생성
+				LoginDto loginDto = LoginDto.builder()
+						.verifyId(member.getVerifyId())
+						.email(member.getEmail())
+						.role(member.getRole().name())
+						.build();
+
+				CustomUserDetails userDetails = CustomUserDetails.create(loginDto);
 				setUserAuthentication(userDetails);
 			} else {
 				sendTokenRefreshResponse(response);
@@ -116,7 +131,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
 	private void setUserAuthentication(CustomUserDetails userDetails) {
 		UsernamePasswordAuthenticationToken authentication =
-			new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+				new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 	}
 
