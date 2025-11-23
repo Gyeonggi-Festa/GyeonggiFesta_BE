@@ -4,6 +4,7 @@ import gyeonggi.gyeonggifesta.auth.custom.CustomUserDetails;
 import gyeonggi.gyeonggifesta.auth.exception.AuthErrorCode;
 import gyeonggi.gyeonggifesta.exception.BusinessException;
 import gyeonggi.gyeonggifesta.member.entity.Member;
+import gyeonggi.gyeonggifesta.member.enums.Role;
 import gyeonggi.gyeonggifesta.member.repository.MemberRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -82,30 +83,43 @@ public class JwtTokenProvider {
 	 */
 	public Map<String, String> refreshTokens(String refreshToken) {
 
+		// 1) 토큰 자체 유효성 검증 (서명, 만료 등)
 		if (!validateToken(refreshToken)) {
 			throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}
 
 		String verifyId = getClaims(refreshToken).getSubject();
 
-		// 운영: 저장된 RT와 일치해야 함
-		// 로컬(또는 Redis 미사용): safeGet이 null이면 저장 확인을 스킵하고 토큰 재발급 허용
-		String storedRefreshToken = safeGet(verifyId);
-		if (storedRefreshToken != null) {
-			checkStoredRefreshToken(storedRefreshToken, refreshToken);
-		} else {
-			log.warn("[refreshTokens] Redis 미사용/미구동으로 저장된 RT가 없습니다. 로컬 모드로 간주하고 검증을 스킵합니다.");
+		// 2) 현재 Member 조회
+		Member member = memberRepository.findByVerifyId(verifyId)
+				.orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+
+		// 3) 탈퇴 회원(ROLE_DELETED)은 리프레시 불가
+		if (member.getRole() == Role.ROLE_DELETED) {
+			throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}
 
-		// 기존 RT 제거(로컬/미구동 시 무시)
+		// 4) Redis 에 저장된 RT와 비교 (운영: 필수, 로컬/미사용: 스킵)
+		if (redisTemplate != null) {
+			String storedRefreshToken = safeGet(verifyId);
+
+			// withdraw() / logout 등으로 이미 삭제된 RT → 재사용 불가
+			if (storedRefreshToken == null) {
+				throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+			}
+
+			checkStoredRefreshToken(storedRefreshToken, refreshToken);
+		} else {
+			log.warn("[refreshTokens] Redis 미사용/미구동으로 저장된 RT가 없습니다. 로컬 모드로 간주하고 저장 검증을 스킵합니다.");
+		}
+
+		// 5) 기존 RT 제거(로컬/미구동 시 무시)
 		safeDelete(verifyId);
 
+		// 6) 새 AT/RT 생성
 		Date now = new Date();
 		Date accessExpiryDate = new Date(now.getTime() + ACCESS_TOKEN_EXPIRE_TIME);
 		Date refreshExpiryDate = new Date(now.getTime() + REFRESH_TOKEN_EXPIRE_TIME);
-
-		Member member = memberRepository.findByVerifyId(verifyId)
-				.orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
 		Map<String, Object> accessClaims = Map.of(
 				"email", member.getEmail(),
@@ -115,7 +129,7 @@ public class JwtTokenProvider {
 		String newAccessToken = createToken(verifyId, now, accessExpiryDate, accessClaims);
 		String newRefreshToken = createToken(verifyId, now, refreshExpiryDate, null);
 
-		// 새 RT 저장(로컬/미구동 시 무시)
+		// 7) 새 RT 저장(로컬/미구동 시 무시)
 		safeSet(verifyId, newRefreshToken, REFRESH_TOKEN_EXPIRE_TIME, TimeUnit.MILLISECONDS);
 
 		return Map.of(
